@@ -17,9 +17,7 @@ import java.util.UUID;
 public abstract class BaseEntity {
 
     @Id
-    @GeneratedValue
-    @JdbcTypeCode(Types.BINARY)
-    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     private Boolean isDeleted = false;
@@ -29,4 +27,9 @@ public abstract class BaseEntity {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+
+    private UUID createdBy;
+
+    private UUID updatedBy;
 }
