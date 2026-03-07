@@ -31,6 +31,9 @@ public class User extends BaseEntity {
     private Integer invalidAttemptCount = 0;
 
     private LocalDateTime passwordUpdateDate;
+    private LocalDateTime passwordExpiryDate;
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
