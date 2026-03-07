@@ -4,10 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
+
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.sql.Types;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 

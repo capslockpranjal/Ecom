@@ -8,18 +8,19 @@ import org.example.zenvybackend.user.entity.User;
 
 import java.time.LocalDateTime;
 
+
 @Entity
 @Getter
 @Setter
-public class ResetPasswordToken extends BaseEntity {
+public class RefreshToken extends BaseEntity {
 
-    @Column(unique = true, nullable = false)
+
+
+    @Column(nullable = false, unique = true)
     private String token;
 
     private LocalDateTime expiryDate;
-    private Integer attemptCount = 0;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne
     private User user;
 }

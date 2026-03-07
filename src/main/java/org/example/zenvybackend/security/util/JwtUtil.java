@@ -19,7 +19,8 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    private final long EXPIRATION = 86400000; // 24 hours
+    @Value("${jwt.access.expiration}")
+    private long accessExpiration;
 
     private Key getSigningKey(){
         byte[] keyBytes = Base64.getDecoder().decode(secret);
@@ -38,7 +39,7 @@ public class JwtUtil {
                 .setSubject(email)
                 .claim("roles", authorities)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .setExpiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -58,7 +59,11 @@ public class JwtUtil {
     /* -------------------- VALIDATE TOKEN -------------------- */
 
     public boolean validateToken(String token){
-        return extractAllClaims(token).getExpiration().after(new Date());
+
+        Claims claims = extractAllClaims(token);
+
+        return claims.getExpiration().after(new Date())
+                && claims.getSubject() != null;
     }
 
     /* -------------------- PARSE CLAIMS -------------------- */
@@ -70,5 +75,9 @@ public class JwtUtil {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public Date extractExpiration(String token){
+        return extractAllClaims(token).getExpiration();
     }
 }

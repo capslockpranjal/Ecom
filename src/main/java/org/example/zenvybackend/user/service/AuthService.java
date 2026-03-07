@@ -1,25 +1,29 @@
 package org.example.zenvybackend.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.util.PasswordValidator;
 import org.example.zenvybackend.security.util.JwtUtil;
 import org.example.zenvybackend.user.dto.request.LoginRequest;
 import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
+import org.example.zenvybackend.user.dto.response.AuthResponse;
 import org.example.zenvybackend.user.entity.Role;
 import org.example.zenvybackend.user.entity.User;
-import org.example.zenvybackend.user.repository.RoleRepository;
-import org.example.zenvybackend.user.repository.UserRepository;
-import org.example.zenvybackend.user.repository.ActivationTokenRepository;
-import org.example.zenvybackend.user.repository.ResetPasswordTokenRepository;
+import org.example.zenvybackend.user.repository.*;
 import org.example.zenvybackend.user.token.ActivationToken;
+import org.example.zenvybackend.user.token.BlacklistedToken;
+import org.example.zenvybackend.user.token.RefreshToken;
 import org.example.zenvybackend.user.token.ResetPasswordToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,6 +34,8 @@ public class AuthService {
     private final UserRepository userRepository;
     private final ActivationTokenRepository activationTokenRepository;
     private final ResetPasswordTokenRepository resetPasswordTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
@@ -37,10 +43,12 @@ public class AuthService {
 
     private static final int MAX_LOGIN_ATTEMPTS = 3;
     private static final long LOCK_DURATION_MINUTES = 30;
+    private static final int MAX_RESET_ATTEMPTS = 5;
 
-    /* ------------------------------------------------ */
-    /* REGISTER CUSTOMER */
-    /* ------------------------------------------------ */
+    @Value("${jwt.refresh.expiration}")
+    private long refreshExpiration;
+
+
 
     @Transactional
     public void registerCustomer(RegisterCustomerRequest request){
@@ -68,7 +76,7 @@ public class AuthService {
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setIsActive(false);
-        /* ---------- ADD ROLE HERE ---------- */
+
 
         Role role = roleRepository.findByAuthority("ROLE_CUSTOMER")
                 .orElseThrow(() -> new RuntimeException("Role not found"));
@@ -80,11 +88,58 @@ public class AuthService {
         generateActivationToken(user);
     }
 
-    /* ------------------------------------------------ */
-    /* GENERATE ACTIVATION TOKEN */
-    /* ------------------------------------------------ */
+
+
+    @Transactional
+    public void registerSeller(RegisterCustomerRequest request){
+
+        if(userRepository.existsByEmail(request.getEmail())){
+            throw new BadRequestException("Email already registered");
+        }
+
+        if(!request.getPassword().equals(request.getConfirmPassword())){
+            throw new BadRequestException("Passwords do not match");
+        }
+
+        if(!PasswordValidator.isValid(request.getPassword())){
+            throw new BadRequestException(
+                    "Password must contain uppercase, lowercase, number and minimum 8 characters"
+            );
+        }
+
+        User user = new User();
+
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        user.setPasswordUpdateDate(LocalDateTime.now());
+        user.setPasswordExpiryDate(LocalDateTime.now().plusDays(90));
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+
+        /* SELLER ACCOUNTS REQUIRE ADMIN APPROVAL */
+        user.setIsActive(false);
+
+        Role role = roleRepository.findByAuthority("ROLE_SELLER")
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        user.setRoles(Set.of(role));
+
+        userRepository.save(user);
+
+        emailService.sendEmail(
+                user.getEmail(),
+                "Seller Registration Received",
+                "Your seller account is under review. You will be notified once approved."
+        );
+    }
+
+
 
     private void generateActivationToken(User user){
+
+        activationTokenRepository.deleteByUser(user);
 
         String token = UUID.randomUUID().toString();
 
@@ -92,7 +147,7 @@ public class AuthService {
 
         activationToken.setToken(token);
         activationToken.setUser(user);
-        activationToken.setExpiryDate(LocalDateTime.now().plusHours(1));
+        activationToken.setExpiryDate(LocalDateTime.now().plusHours(3));
 
         activationTokenRepository.save(activationToken);
 
@@ -103,9 +158,7 @@ public class AuthService {
         );
     }
 
-    /* ------------------------------------------------ */
-    /* ACTIVATE ACCOUNT */
-    /* ------------------------------------------------ */
+
 
     @Transactional
     public void activateAccount(String token){
@@ -127,12 +180,10 @@ public class AuthService {
         activationTokenRepository.delete(activationToken);
     }
 
-    /* ------------------------------------------------ */
-    /* LOGIN */
-    /* ------------------------------------------------ */
+
 
     @Transactional
-    public String login(LoginRequest request){
+    public AuthResponse login(LoginRequest request){
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadRequestException("Invalid email or password"));
@@ -170,6 +221,12 @@ public class AuthService {
             if(user.getInvalidAttemptCount() >= MAX_LOGIN_ATTEMPTS){
                 user.setIsLocked(true);
                 user.setLockTime(LocalDateTime.now());
+
+                emailService.sendEmail(
+                        user.getEmail(),
+                        "Account Locked",
+                        "Your account has been locked due to multiple failed login attempts."
+                );
             }
 
             userRepository.save(user);
@@ -178,14 +235,29 @@ public class AuthService {
         }
 
         user.setInvalidAttemptCount(0);
+        user.setIsLocked(false);
+        user.setLockTime(null);
         userRepository.save(user);
 
-        return jwtUtil.generateToken(user.getEmail(), new ArrayList<>(user.getRoles()));
+        String accessToken = jwtUtil.generateToken(user.getEmail(), new ArrayList<>(user.getRoles()));
+
+        refreshTokenRepository.deleteByUser(user);
+        String refreshToken = UUID.randomUUID().toString();
+
+        RefreshToken token = new RefreshToken();
+        token.setToken(refreshToken);
+        token.setUser(user);
+        token.setExpiryDate(
+                LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration))
+        );
+
+
+        refreshTokenRepository.save(token);
+
+        return new AuthResponse(accessToken, refreshToken);
     }
 
-    /* ------------------------------------------------ */
-    /* FORGOT PASSWORD */
-    /* ------------------------------------------------ */
+
 
     @Transactional
     public void forgotPassword(String email){
@@ -211,22 +283,34 @@ public class AuthService {
         );
     }
 
-    /* ------------------------------------------------ */
-    /* RESET PASSWORD */
-    /* ------------------------------------------------ */
+
 
     @Transactional
-    public void resetPassword(String token, String password){
+    public void resetPassword(String token, String password, String confirmPassword){
 
+        if(!password.equals(confirmPassword)){
+            throw new BadRequestException("Passwords do not match");
+        }
         ResetPasswordToken resetToken = resetPasswordTokenRepository
                 .findByToken(token)
                 .orElseThrow(() -> new BadRequestException("Invalid reset token"));
 
+
         if(resetToken.getExpiryDate().isBefore(LocalDateTime.now())){
+            resetPasswordTokenRepository.delete(resetToken);
             throw new BadRequestException("Reset token expired");
         }
 
+        if(resetToken.getAttemptCount() >= MAX_RESET_ATTEMPTS){
+            resetPasswordTokenRepository.delete(resetToken);
+            throw new BadRequestException("Too many attempts. Request a new reset link.");
+        }
+
         if(!PasswordValidator.isValid(password)){
+
+            resetToken.setAttemptCount(resetToken.getAttemptCount() + 1);
+            resetPasswordTokenRepository.save(resetToken);
+
             throw new BadRequestException("Password does not meet policy requirements");
         }
 
@@ -236,9 +320,80 @@ public class AuthService {
         user.setPasswordUpdateDate(LocalDateTime.now());
         user.setPasswordExpiryDate(LocalDateTime.now().plusDays(90));
 
+        user.setIsLocked(false);
+        user.setInvalidAttemptCount(0);
+        user.setLockTime(null);
         userRepository.save(user);
 
         resetPasswordTokenRepository.delete(resetToken);
     }
 
+    @Transactional
+    public AuthResponse refreshToken(String refreshTokenValue){
+
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenValue)
+                .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
+
+        if(refreshToken.getExpiryDate().isBefore(LocalDateTime.now())){
+            throw new BadRequestException("Refresh token expired");
+        }
+
+        User user = refreshToken.getUser();
+
+        /* DELETE OLD REFRESH TOKEN */
+        refreshTokenRepository.delete(refreshToken);
+
+        /* CREATE NEW REFRESH TOKEN */
+        String newRefreshToken = UUID.randomUUID().toString();
+
+        RefreshToken token = new RefreshToken();
+        token.setToken(newRefreshToken);
+        token.setUser(user);
+        token.setExpiryDate(LocalDateTime.now().plusHours(24));
+
+        refreshTokenRepository.save(token);
+
+        /* CREATE NEW ACCESS TOKEN */
+        String accessToken = jwtUtil.generateToken(
+                user.getEmail(),
+                new ArrayList<>(user.getRoles())
+        );
+
+        return new AuthResponse(accessToken, newRefreshToken);
+    }
+
+    @Transactional
+    public void resendActivation(String email){
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        if(user.getIsActive()){
+            throw new BadRequestException("Account already activated");
+        }
+
+        activationTokenRepository.deleteByUser(user);
+
+        generateActivationToken(user);
+    }
+    @Transactional
+    public void logout(String token){
+
+        BlacklistedToken blacklistedToken = new BlacklistedToken();
+
+        blacklistedToken.setToken(token);
+
+        Date expiry = jwtUtil.extractExpiration(token);
+
+        blacklistedToken.setExpiryDate(
+                expiry.toInstant()
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime()
+        );
+
+        blacklistedTokenRepository.save(blacklistedToken);
+
+        blacklistCacheService.blacklistToken(token);
+    }
 }

@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.security.util.JwtUtil;
+import org.example.zenvybackend.user.repository.BlacklistedTokenRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     @Override
     protected void doFilterInternal(
@@ -37,8 +39,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+        if(blacklistCacheService.isBlacklisted(token)){
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        if(!jwtUtil.validateToken(token)){
+        try {
+
+            if(!jwtUtil.validateToken(token)){
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+        } catch (Exception e) {
             filterChain.doFilter(request, response);
             return;
         }

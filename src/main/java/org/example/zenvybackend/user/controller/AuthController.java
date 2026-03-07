@@ -7,6 +7,7 @@ import org.example.zenvybackend.user.dto.request.ForgotPasswordRequest;
 import org.example.zenvybackend.user.dto.request.LoginRequest;
 import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
 import org.example.zenvybackend.user.dto.request.ResetPasswordRequest;
+import org.example.zenvybackend.user.dto.response.AuthResponse;
 import org.example.zenvybackend.user.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /* ------------------------------------------------ */
-    /* REGISTER CUSTOMER */
-    /* ------------------------------------------------ */
+
 
     @PostMapping("/register/customer")
     public ResponseEntity<ApiResponse<String>> registerCustomer(
@@ -33,9 +32,20 @@ public class AuthController {
         );
     }
 
-    /* ------------------------------------------------ */
-    /* ACTIVATE ACCOUNT */
-    /* ------------------------------------------------ */
+
+
+    @PostMapping("/register/seller")
+    public ResponseEntity<ApiResponse<String>> registerSeller(
+            @Valid @RequestBody RegisterCustomerRequest request){
+
+        authService.registerSeller(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Seller registration submitted. Await admin approval.")
+        );
+    }
+
+
 
     @GetMapping("/activate")
     public ResponseEntity<ApiResponse<String>> activateAccount(
@@ -48,24 +58,20 @@ public class AuthController {
         );
     }
 
-    /* ------------------------------------------------ */
-    /* LOGIN */
-    /* ------------------------------------------------ */
+
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<String>> login(
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
             @RequestBody LoginRequest request){
 
-        String token = authService.login(request);
+        AuthResponse token = authService.login(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success(token)
+                ApiResponse.success("Login successful", token)
         );
     }
 
-    /* ------------------------------------------------ */
-    /* FORGOT PASSWORD */
-    /* ------------------------------------------------ */
+
 
     @PostMapping("/forgot-password")
     public ApiResponse<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
@@ -74,20 +80,43 @@ public class AuthController {
 
         return ApiResponse.success("Reset email sent");
     }
-    /* ------------------------------------------------ */
-    /* RESET PASSWORD */
-    /* ------------------------------------------------ */
+
 
     @PostMapping("/reset-password")
     public ApiResponse<String> resetPassword(@RequestBody ResetPasswordRequest request) {
 
-        authService.resetPassword(request.getToken(), request.getPassword());
+        authService.resetPassword(request.getToken(), request.getPassword(),request.getConfirmPassword());
 
         return ApiResponse.success("Password reset successful");
     }
     @GetMapping("/test")
     public String test(){
         return "JWT works";
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<AuthResponse> refreshToken(@RequestParam String refreshToken){
+
+        AuthResponse response = authService.refreshToken(refreshToken);
+
+        return ApiResponse.success("New tokens generated", response);
+    }
+
+    @PostMapping("/resend-activation")
+    public ApiResponse<String> resendActivation(@RequestParam String email){
+
+        authService.resendActivation(email);
+
+        return ApiResponse.success("Activation email resent");
+    }
+    @PostMapping("/logout")
+    public ApiResponse<String> logout(@RequestHeader("Authorization") String header){
+
+        String token = header.substring(7);
+
+        authService.logout(token);
+
+        return ApiResponse.success("Logged out successfully");
     }
 
 }
