@@ -26,6 +26,7 @@ public class User extends BaseEntity {
 
     private Boolean isActive = false;
     private Boolean isExpired = false;
+    @Column(name = "is_locked")
     private Boolean isLocked = false;
 
     private Integer invalidAttemptCount = 0;

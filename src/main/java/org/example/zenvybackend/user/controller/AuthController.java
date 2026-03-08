@@ -62,7 +62,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
-            @RequestBody LoginRequest request){
+           @Valid @RequestBody LoginRequest request){
 
         AuthResponse token = authService.login(request);
 
@@ -89,10 +89,7 @@ public class AuthController {
 
         return ApiResponse.success("Password reset successful");
     }
-    @GetMapping("/test")
-    public String test(){
-        return "JWT works";
-    }
+
 
     @PostMapping("/refresh")
     public ApiResponse<AuthResponse> refreshToken(@RequestParam String refreshToken){

@@ -1,9 +1,10 @@
 package org.example.zenvybackend.user.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
+
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.util.PasswordValidator;
+import org.example.zenvybackend.security.service.BlacklistCacheService;
 import org.example.zenvybackend.security.util.JwtUtil;
 import org.example.zenvybackend.user.dto.request.LoginRequest;
 import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
@@ -15,6 +16,7 @@ import org.example.zenvybackend.user.token.ActivationToken;
 import org.example.zenvybackend.user.token.BlacklistedToken;
 import org.example.zenvybackend.user.token.RefreshToken;
 import org.example.zenvybackend.user.token.ResetPasswordToken;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final RoleRepository roleRepository;
+    private final BlacklistCacheService blacklistCacheService;
 
     private static final int MAX_LOGIN_ATTEMPTS = 3;
     private static final long LOCK_DURATION_MINUTES = 30;
@@ -182,7 +185,7 @@ public class AuthService {
 
 
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public AuthResponse login(LoginRequest request){
 
         User user = userRepository.findByEmail(request.getEmail())

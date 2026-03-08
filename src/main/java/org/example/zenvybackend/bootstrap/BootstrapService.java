@@ -2,11 +2,12 @@ package org.example.zenvybackend.bootstrap;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
+
 import org.example.zenvybackend.user.entity.Role;
 import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.RoleRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
