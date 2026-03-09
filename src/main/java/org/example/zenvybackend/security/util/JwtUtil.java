@@ -1,6 +1,7 @@
 package org.example.zenvybackend.security.util;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.example.zenvybackend.user.entity.Role;
@@ -68,13 +69,16 @@ public class JwtUtil {
 
     /* -------------------- PARSE CLAIMS -------------------- */
 
-    private Claims extractAllClaims(String token){
-
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    private Claims extractAllClaims(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException ex) {
+            return ex.getClaims();
+        }
     }
 
     public Date extractExpiration(String token){

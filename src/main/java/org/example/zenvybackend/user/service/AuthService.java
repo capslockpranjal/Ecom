@@ -1,5 +1,6 @@
 package org.example.zenvybackend.user.service;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 
 import org.example.zenvybackend.common.exception.BadRequestException;
@@ -381,22 +382,35 @@ public class AuthService {
         generateActivationToken(user);
     }
     @Transactional
-    public void logout(String token){
+    public void logout(String token) {
 
-        BlacklistedToken blacklistedToken = new BlacklistedToken();
+        // prevent duplicate insert
+        if (blacklistedTokenRepository.existsByToken(token)) {
+            return;
+        }
 
-        blacklistedToken.setToken(token);
+        Date expiry;
 
-        Date expiry = jwtUtil.extractExpiration(token);
+        try {
+            expiry = jwtUtil.extractExpiration(token);
+        } catch (ExpiredJwtException ex) {
+            expiry = ex.getClaims().getExpiration();
+        }
 
-        blacklistedToken.setExpiryDate(
-                expiry.toInstant()
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDateTime()
-        );
+        BlacklistedToken blacklistedToken = BlacklistedToken.builder()
+                .token(token)
+                .expiryDate(
+                        expiry.toInstant()
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime()
+                )
+                .build();
 
         blacklistedTokenRepository.save(blacklistedToken);
 
         blacklistCacheService.blacklistToken(token);
+
+        String email = jwtUtil.extractEmail(token);
+        refreshTokenRepository.deleteByUser_Email(email);
     }
 }

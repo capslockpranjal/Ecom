@@ -5,8 +5,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.security.handler.CustomAuthenticationEntryPoint;
 import org.example.zenvybackend.security.service.BlacklistCacheService;
 import org.example.zenvybackend.security.util.JwtUtil;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +24,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final BlacklistCacheService blacklistCacheService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+
+
+
+
 
     @Override
     protected void doFilterInternal(
@@ -29,6 +36,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+
+        if (path.startsWith("/auth/logout")){
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
 
@@ -42,12 +56,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
 
             if(blacklistCacheService.isBlacklisted(token)){
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                authenticationEntryPoint.commence(request, response,
+                        new BadCredentialsException("Token is blacklisted"));
                 return;
             }
 
             if(!jwtUtil.validateToken(token)){
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                authenticationEntryPoint.commence(request, response,
+                        new BadCredentialsException("Token invalid or expired"));
                 return;
             }
 
@@ -67,9 +83,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 
-        } catch (Exception e) {
-
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (Exception ex) {
+            SecurityContextHolder.clearContext();
+            authenticationEntryPoint.commence(request, response,
+                    new BadCredentialsException("Invalid JWT token"));
             return;
         }
 

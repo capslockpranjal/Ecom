@@ -1,7 +1,9 @@
 package org.example.zenvybackend.user.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.ForgotPasswordRequest;
 import org.example.zenvybackend.user.dto.request.LoginRequest;
@@ -107,13 +109,19 @@ public class AuthController {
         return ApiResponse.success("Activation email resent");
     }
     @PostMapping("/logout")
-    public ApiResponse<String> logout(@RequestHeader("Authorization") String header){
+    public ApiResponse<String> logout(HttpServletRequest request) {
 
-        String token = header.substring(7);
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BadRequestException("Token missing");
+        }
+
+        String token = authHeader.substring(7);
 
         authService.logout(token);
 
-        return ApiResponse.success("Logged out successfully");
+        return ApiResponse.success("Logout successful", null);
     }
 
 }
