@@ -13,7 +13,7 @@ public class TokenCleanupScheduler {
 
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 * * * ?")
     public void cleanExpiredTokens(){
 
         blacklistedTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());

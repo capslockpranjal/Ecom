@@ -51,6 +51,8 @@ public class AuthService {
 
     @Value("${jwt.refresh.expiration}")
     private long refreshExpiration;
+    @Value("${jwt.access.expiration}")
+    private long accessExpiration;
 
 
 
@@ -354,7 +356,9 @@ public class AuthService {
         RefreshToken token = new RefreshToken();
         token.setToken(newRefreshToken);
         token.setUser(user);
-        token.setExpiryDate(LocalDateTime.now().plusHours(24));
+        token.setExpiryDate(
+                LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration))
+        );
 
         refreshTokenRepository.save(token);
 
