@@ -2,12 +2,14 @@ package org.example.zenvybackend.user.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-public class RegisterCustomerRequest {
+@Getter
+@Setter
+public class RegisterSellerRequest {
 
-    @Email @NotBlank
+    @NotBlank @Email
     private String email;
 
     @NotBlank
@@ -15,6 +17,15 @@ public class RegisterCustomerRequest {
 
     @NotBlank
     private String confirmPassword;
+
+    @NotBlank
+    private String gst;
+
+    @NotBlank
+    private String companyName;
+
+    @NotBlank
+    private String companyContact;
 
     @NotBlank
     private String firstName;

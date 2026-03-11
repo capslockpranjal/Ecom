@@ -38,6 +38,13 @@ public class ApiResponse<T> {
                 .build();
     }
 
+    public static <T> ApiResponse<T> success(T data) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .data(data)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
     /* FAILURE RESPONSE */
 
     public static <T> ApiResponse<T> failure(String message) {

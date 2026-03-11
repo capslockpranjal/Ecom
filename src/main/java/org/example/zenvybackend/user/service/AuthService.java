@@ -9,6 +9,7 @@ import org.example.zenvybackend.security.service.BlacklistCacheService;
 import org.example.zenvybackend.security.util.JwtUtil;
 import org.example.zenvybackend.user.dto.request.LoginRequest;
 import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
+import org.example.zenvybackend.user.dto.request.RegisterSellerRequest;
 import org.example.zenvybackend.user.dto.response.AuthResponse;
 import org.example.zenvybackend.user.entity.Role;
 import org.example.zenvybackend.user.entity.User;
@@ -97,7 +98,7 @@ public class AuthService {
 
 
     @Transactional
-    public void registerSeller(RegisterCustomerRequest request){
+    public void registerSeller(RegisterSellerRequest request){
 
         if(userRepository.existsByEmail(request.getEmail())){
             throw new BadRequestException("Email already registered");
@@ -359,7 +360,6 @@ public class AuthService {
         token.setExpiryDate(
                 LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration))
         );
-
         refreshTokenRepository.save(token);
 
         /* CREATE NEW ACCESS TOKEN */

@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
                 .getFieldErrors()
                 .stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .findFirst()
+                .reduce((msg1, msg2) -> msg1 + ", " + msg2)
                 .orElse("Validation error");
 
         ErrorResponse error = ErrorResponse.builder()
@@ -97,7 +97,6 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
-
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(
             AccessDeniedException ex,

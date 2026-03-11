@@ -3,6 +3,7 @@ package org.example.zenvybackend.bootstrap;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
+import org.example.zenvybackend.common.constants.RoleConstants;
 import org.example.zenvybackend.user.entity.Role;
 import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.RoleRepository;
@@ -38,9 +39,9 @@ public class BootstrapService {
 
     private void createRoles(){
 
-        createRoleIfNotExists("ROLE_ADMIN");
-        createRoleIfNotExists("ROLE_CUSTOMER");
-        createRoleIfNotExists("ROLE_SELLER");
+        createRoleIfNotExists(RoleConstants.ADMIN);
+        createRoleIfNotExists(RoleConstants.CUSTOMER);
+        createRoleIfNotExists(RoleConstants.SELLER);
     }
 
     private void createRoleIfNotExists(String roleName){

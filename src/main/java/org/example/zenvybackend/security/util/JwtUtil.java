@@ -23,14 +23,14 @@ public class JwtUtil {
     @Value("${jwt.access.expiration}")
     private long accessExpiration;
 
-    private Key getSigningKey(){
+    private Key getSigningKey() {
         byte[] keyBytes = Base64.getDecoder().decode(secret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     /* -------------------- GENERATE TOKEN -------------------- */
 
-    public String generateToken(String email, List<Role> roles){
+    public String generateToken(String email, List<Role> roles) {
 
         List<String> authorities = roles.stream()
                 .map(Role::getAuthority)
@@ -47,19 +47,19 @@ public class JwtUtil {
 
     /* -------------------- EXTRACT EMAIL -------------------- */
 
-    public String extractEmail(String token){
+    public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
     /* -------------------- EXTRACT ROLES -------------------- */
 
-    public List<String> extractRoles(String token){
+    public List<String> extractRoles(String token) {
         return extractAllClaims(token).get("roles", List.class);
     }
 
     /* -------------------- VALIDATE TOKEN -------------------- */
 
-    public boolean validateToken(String token){
+    public boolean validateToken(String token) {
 
         Claims claims = extractAllClaims(token);
 
@@ -81,7 +81,11 @@ public class JwtUtil {
         }
     }
 
-    public Date extractExpiration(String token){
+    public Date extractExpiration(String token) {
         return extractAllClaims(token).getExpiration();
+    }
+
+    public Date extractIssuedAt(String token) {
+        return extractAllClaims(token).getIssuedAt();
     }
 }

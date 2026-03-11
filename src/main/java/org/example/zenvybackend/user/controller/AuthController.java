@@ -5,10 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.response.ApiResponse;
-import org.example.zenvybackend.user.dto.request.ForgotPasswordRequest;
-import org.example.zenvybackend.user.dto.request.LoginRequest;
-import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
-import org.example.zenvybackend.user.dto.request.ResetPasswordRequest;
+import org.example.zenvybackend.user.dto.request.*;
 import org.example.zenvybackend.user.dto.response.AuthResponse;
 import org.example.zenvybackend.user.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +35,7 @@ public class AuthController {
 
     @PostMapping("/register/seller")
     public ResponseEntity<ApiResponse<String>> registerSeller(
-            @Valid @RequestBody RegisterCustomerRequest request){
+            @Valid @RequestBody RegisterSellerRequest request){
 
         authService.registerSeller(request);
 
