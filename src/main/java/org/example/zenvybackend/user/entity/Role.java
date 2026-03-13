@@ -3,21 +3,20 @@ package org.example.zenvybackend.user.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.example.zenvybackend.common.entity.BaseEntity;
 
-import java.util.Set;
+import java.util.UUID;
 
 
 @Entity
 @Getter
 @Setter
-public class Role extends BaseEntity {
+@Table(name = "role")
+public class Role {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(unique = true, nullable = false)
     private String authority;
-
-
-    @ManyToMany(mappedBy = "roles")
-    private Set<User> users;
-
 }

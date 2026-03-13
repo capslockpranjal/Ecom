@@ -7,13 +7,21 @@ import lombok.Setter;
 import org.example.zenvybackend.common.entity.BaseEntity;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Getter
 @Setter
 @Table(name = "users")
 public class User extends BaseEntity {
+
+     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
+    private UUID id;
+
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -44,7 +52,7 @@ public class User extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     @JsonIgnore
-    private Set<Role> roles;
+    private Set<Role> roles = new HashSet<>();
 
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)

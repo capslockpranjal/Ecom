@@ -2,7 +2,7 @@ package org.example.zenvybackend.user.service;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
-
+import org.example.zenvybackend.common.constants.RoleConstants;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.util.PasswordValidator;
 import org.example.zenvybackend.security.service.BlacklistCacheService;
@@ -11,13 +11,13 @@ import org.example.zenvybackend.user.dto.request.LoginRequest;
 import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
 import org.example.zenvybackend.user.dto.request.RegisterSellerRequest;
 import org.example.zenvybackend.user.dto.response.AuthResponse;
+import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Role;
+import org.example.zenvybackend.user.entity.Seller;
 import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.*;
-import org.example.zenvybackend.user.token.ActivationToken;
-import org.example.zenvybackend.user.token.BlacklistedToken;
-import org.example.zenvybackend.user.token.RefreshToken;
-import org.example.zenvybackend.user.token.ResetPasswordToken;
+import org.example.zenvybackend.user.token.Token;
+import org.example.zenvybackend.user.token.TokenType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -36,10 +35,9 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final ActivationTokenRepository activationTokenRepository;
-    private final ResetPasswordTokenRepository resetPasswordTokenRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final CustomerRepository customerRepository;
+    private final SellerRepository sellerRepository;
+    private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
@@ -52,88 +50,152 @@ public class AuthService {
 
     @Value("${jwt.refresh.expiration}")
     private long refreshExpiration;
-    @Value("${jwt.access.expiration}")
-    private long accessExpiration;
-
 
 
     @Transactional
-    public void registerCustomer(RegisterCustomerRequest request){
+    public void registerCustomer(RegisterCustomerRequest request) {
 
-        if(userRepository.existsByEmail(request.getEmail())){
-            throw new BadRequestException("Email already registered");
-        }
-
-        if(!request.getPassword().equals(request.getConfirmPassword())){
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Passwords do not match");
         }
 
-        if(!PasswordValidator.isValid(request.getPassword())){
+        if (!PasswordValidator.isValid(request.getPassword())) {
             throw new BadRequestException(
                     "Password must contain uppercase, lowercase, number and minimum 8 characters"
             );
         }
 
-        User user = new User();
-
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setPasswordUpdateDate(LocalDateTime.now());
-        user.setPasswordExpiryDate(LocalDateTime.now().plusDays(90));
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setIsActive(false);
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
 
-        Role role = roleRepository.findByAuthority("ROLE_CUSTOMER")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+// NEW: prevent reusing a seller account as customer
+        if (user != null) {
+            boolean isSellerRole = user.getRoles() != null &&
+                    user.getRoles().stream()
+                            .anyMatch(r -> RoleConstants.SELLER.equals(r.getAuthority()));
 
-        user.setRoles(Set.of(role));
+            boolean hasSellerProfile = user.getSeller() != null;
 
+            if (isSellerRole || hasSellerProfile) {
+                throw new BadRequestException(
+                        "Email already registered as seller. Use a different email for customer account."
+                );
+            }
+
+            if (Boolean.TRUE.equals(user.getIsActive())) {
+                throw new BadRequestException("Email already registered. Please login.");
+            }
+
+            throw new BadRequestException(
+                    "Email already registered but not activated. Please check your email or use resend activation."
+            );
+        }
+
+        if (user == null) {
+            user = new User();
+            user.setEmail(request.getEmail());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setPasswordUpdateDate(LocalDateTime.now());
+            user.setPasswordExpiryDate(LocalDateTime.now().plusDays(90));
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setIsActive(false);
+        }
+
+        addRoleIfMissing(user, RoleConstants.CUSTOMER);
+
+        // ... existing code up to userRepository.save(user);
         userRepository.save(user);
 
-        generateActivationToken(user);
+// Ensure customer profile exists and set contact
+        Customer customer = customerRepository.findByUser(user).orElse(null);
+        if (customer == null) {
+            customer = new Customer();
+            customer.setUser(user);
+        }
+        customer.setContact(request.getContact());
+        customerRepository.save(customer);
+
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            generateActivationToken(user);
+        }
     }
 
 
-
     @Transactional
-    public void registerSeller(RegisterSellerRequest request){
+    public void registerSeller(RegisterSellerRequest request) {
 
-        if(userRepository.existsByEmail(request.getEmail())){
-            throw new BadRequestException("Email already registered");
-        }
-
-        if(!request.getPassword().equals(request.getConfirmPassword())){
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Passwords do not match");
         }
 
-        if(!PasswordValidator.isValid(request.getPassword())){
+        if (!PasswordValidator.isValid(request.getPassword())) {
             throw new BadRequestException(
                     "Password must contain uppercase, lowercase, number and minimum 8 characters"
             );
         }
 
-        User user = new User();
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        user.setPasswordUpdateDate(LocalDateTime.now());
-        user.setPasswordExpiryDate(LocalDateTime.now().plusDays(90));
+// NEW: prevent reusing a customer account as seller
+        if (user != null) {
+            boolean isCustomerRole = user.getRoles() != null &&
+                    user.getRoles().stream()
+                            .anyMatch(r -> RoleConstants.CUSTOMER.equals(r.getAuthority()));
 
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
+            boolean hasCustomerProfile = user.getCustomer() != null;
 
-        /* SELLER ACCOUNTS REQUIRE ADMIN APPROVAL */
-        user.setIsActive(false);
+            if (isCustomerRole || hasCustomerProfile) {
+                throw new BadRequestException(
+                        "Email already registered as customer. Use a different email for seller account."
+                );
+            }
 
-        Role role = roleRepository.findByAuthority("ROLE_SELLER")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+            if (Boolean.TRUE.equals(user.getIsActive())) {
+                throw new BadRequestException("Email already registered. Please login.");
+            }
 
-        user.setRoles(Set.of(role));
+            throw new BadRequestException(
+                    "Seller registration already submitted or account not activated. Please check your email or contact support."
+            );
+        }
+
+        if (user == null) {
+            user = new User();
+            user.setEmail(request.getEmail());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setPasswordUpdateDate(LocalDateTime.now());
+            user.setPasswordExpiryDate(LocalDateTime.now().plusDays(90));
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+
+            /* SELLER ACCOUNTS REQUIRE ADMIN APPROVAL */
+            user.setIsActive(false);
+        }
+
+        addRoleIfMissing(user, RoleConstants.SELLER);
 
         userRepository.save(user);
+
+        // Ensure seller profile exists (and store seller-specific fields)
+        Seller seller = user.getSeller();
+        if (seller == null) {
+            seller = new Seller();
+            seller.setUser(user);
+        }
+
+        if (seller.getGst() == null || !seller.getGst().equals(request.getGst())) {
+            if (sellerRepository.existsByGst(request.getGst())) {
+                throw new BadRequestException("GST already registered");
+            }
+        }
+
+        seller.setGst(request.getGst());
+        seller.setCompanyName(request.getCompanyName());
+        seller.setCompanyContact(request.getCompanyContact());
+        seller.setCompanyAddress(request.getCompanyAddress()); 
+        sellerRepository.save(seller);
 
         emailService.sendEmail(
                 user.getEmail(),
@@ -142,72 +204,104 @@ public class AuthService {
         );
     }
 
+    private void addRoleIfMissing(User user, String authority) {
+        Role role = roleRepository.findByAuthority(authority)
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            user.setRoles(new java.util.HashSet<>(java.util.Set.of(role)));
+            return;
+        }
+
+        boolean alreadyHasRole = user.getRoles().stream()
+                .anyMatch(r -> authority.equals(r.getAuthority()));
+
+        if (!alreadyHasRole) {
+            user.setRoles(new java.util.HashSet<>(user.getRoles()));
+            user.getRoles().add(role);
+        }
+    }
 
 
-    private void generateActivationToken(User user){
+    private void generateActivationToken(User user) {
 
-        activationTokenRepository.deleteByUser(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.ACTIVATION);
 
-        String token = UUID.randomUUID().toString();
+        String tokenValue = UUID.randomUUID().toString();
 
-        ActivationToken activationToken = new ActivationToken();
-
-        activationToken.setToken(token);
+        Token activationToken = new Token();
+        activationToken.setToken(tokenValue);
+        activationToken.setType(TokenType.ACTIVATION);
         activationToken.setUser(user);
+        activationToken.setUserEmail(user.getEmail());
         activationToken.setExpiryDate(LocalDateTime.now().plusHours(3));
 
-        activationTokenRepository.save(activationToken);
+        tokenRepository.save(activationToken);
 
         emailService.sendEmail(
                 user.getEmail(),
                 "Activate your account",
-                "Activation Link: http://localhost:8080/auth/activate?token=" + token
+                "Activation Link: http://localhost:8080/auth/activate?token=" + tokenValue
         );
     }
 
 
+  @Transactional(noRollbackFor = BadRequestException.class)
+public void activateAccount(String token) {
 
-    @Transactional
-    public void activateAccount(String token){
+    Token activationToken = tokenRepository
+            .findByTokenAndType(token, TokenType.ACTIVATION)
+            .orElseThrow(() -> new BadRequestException("Invalid activation token"));
 
-        ActivationToken activationToken = activationTokenRepository
-                .findByToken(token)
-                .orElseThrow(() -> new BadRequestException("Invalid activation token"));
+    User user = activationToken.getUser();
 
-        if(activationToken.getExpiryDate().isBefore(LocalDateTime.now())){
-            throw new BadRequestException("Activation token expired");
-        }
+    // EXPIRED token flow
+    if (activationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
 
-        User user = activationToken.getUser();
+        // delete old token
+        tokenRepository.delete(activationToken);
 
-        user.setIsActive(true);
+        // generate new token and send another email
+        generateActivationToken(user);
 
-        userRepository.save(user);
-
-        activationTokenRepository.delete(activationToken);
+        // do NOT activate user
+        throw new BadRequestException("Activation token expired. A new activation link has been sent.");
     }
 
+    // VALID token flow
+    user.setIsActive(true);
+    userRepository.save(user);
+
+    tokenRepository.delete(activationToken);
+
+    // async mail after successful activation (you already have EmailService)
+    emailService.sendEmail(
+            user.getEmail(),
+            "Account Activated",
+            "Your account has been successfully activated."
+    );
+}
 
 
     @Transactional(noRollbackFor = BadRequestException.class)
-    public AuthResponse login(LoginRequest request){
+    public AuthResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadRequestException("Invalid email or password"));
 
-        if(!user.getIsActive()){
+        if (!user.getIsActive()) {
             throw new BadRequestException("Account not activated");
         }
-        if(user.getPasswordExpiryDate() != null &&
-                user.getPasswordExpiryDate().isBefore(LocalDateTime.now())){
+        if (user.getPasswordExpiryDate() != null &&
+                user.getPasswordExpiryDate().isBefore(LocalDateTime.now())) {
 
             throw new BadRequestException("Password expired. Please reset your password.");
         }
 
-        if(user.getIsLocked()){
+        if (user.getIsLocked()) {
 
-            if(user.getLockTime() != null &&
-                    user.getLockTime().plusMinutes(LOCK_DURATION_MINUTES).isBefore(LocalDateTime.now())){
+            if (user.getLockTime() != null &&
+                    user.getLockTime().plusMinutes(LOCK_DURATION_MINUTES).isBefore(LocalDateTime.now())) {
 
                 // UNLOCK ACCOUNT
                 user.setIsLocked(false);
@@ -216,16 +310,14 @@ public class AuthService {
 
                 userRepository.save(user);
 
-            } else {
-                throw new BadRequestException("Account locked. Try again after 30 minutes");
-            }
+            } 
         }
 
-        if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
 
             user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
 
-            if(user.getInvalidAttemptCount() >= MAX_LOGIN_ATTEMPTS){
+            if (user.getInvalidAttemptCount() >= MAX_LOGIN_ATTEMPTS) {
                 user.setIsLocked(true);
                 user.setLockTime(LocalDateTime.now());
 
@@ -248,75 +340,83 @@ public class AuthService {
 
         String accessToken = jwtUtil.generateToken(user.getEmail(), new ArrayList<>(user.getRoles()));
 
-        refreshTokenRepository.deleteByUser(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.REFRESH);
         String refreshToken = UUID.randomUUID().toString();
 
-        RefreshToken token = new RefreshToken();
+        Token token = new Token();
         token.setToken(refreshToken);
+        token.setType(TokenType.REFRESH);
         token.setUser(user);
+        token.setUserEmail(user.getEmail());
         token.setExpiryDate(
                 LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration))
         );
 
 
-        refreshTokenRepository.save(token);
+        tokenRepository.save(token);
 
         return new AuthResponse(accessToken, refreshToken);
     }
 
 
-
     @Transactional
-    public void forgotPassword(String email){
+    public void forgotPassword(String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("Email not found"));
 
-        resetPasswordTokenRepository.deleteByUser(user);
-        String token = UUID.randomUUID().toString();
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new BadRequestException("Account is not activated. Please activate your account first.");
+        }
 
-        ResetPasswordToken resetToken = new ResetPasswordToken();
+        tokenRepository.deleteByUserAndType(user, TokenType.RESET_PASSWORD);
+        String tokenValue = UUID.randomUUID().toString();
 
-        resetToken.setToken(token);
+        Token resetToken = new Token();
+
+        resetToken.setToken(tokenValue);
+        resetToken.setType(TokenType.RESET_PASSWORD);
         resetToken.setUser(user);
+        resetToken.setUserEmail(user.getEmail());
         resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(15));
 
-        resetPasswordTokenRepository.save(resetToken);
+        tokenRepository.save(resetToken);
 
         emailService.sendEmail(
                 user.getEmail(),
                 "Reset Password",
-                "Reset Link: http://localhost:8080/auth/reset-password?token=" + token
+                "Reset Link: http://localhost:8080/auth/reset-password?token=" + tokenValue
         );
     }
 
 
-
     @Transactional
-    public void resetPassword(String token, String password, String confirmPassword){
+    public void resetPassword(String token, String password, String confirmPassword) {
 
-        if(!password.equals(confirmPassword)){
+        if (!password.equals(confirmPassword)) {
             throw new BadRequestException("Passwords do not match");
         }
-        ResetPasswordToken resetToken = resetPasswordTokenRepository
-                .findByToken(token)
+        Token resetToken = tokenRepository
+                .findByTokenAndType(token, TokenType.RESET_PASSWORD)
                 .orElseThrow(() -> new BadRequestException("Invalid reset token"));
 
 
-        if(resetToken.getExpiryDate().isBefore(LocalDateTime.now())){
-            resetPasswordTokenRepository.delete(resetToken);
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            tokenRepository.delete(resetToken);
             throw new BadRequestException("Reset token expired");
         }
 
-        if(resetToken.getAttemptCount() >= MAX_RESET_ATTEMPTS){
-            resetPasswordTokenRepository.delete(resetToken);
+        if (resetToken.getAttemptCount() >= MAX_RESET_ATTEMPTS) {
+            tokenRepository.delete(resetToken);
             throw new BadRequestException("Too many attempts. Request a new reset link.");
         }
 
-        if(!PasswordValidator.isValid(password)){
+        if (!PasswordValidator.isValid(password)) {
 
-            resetToken.setAttemptCount(resetToken.getAttemptCount() + 1);
-            resetPasswordTokenRepository.save(resetToken);
+            resetToken.setAttemptCount(
+                    (resetToken.getAttemptCount() == null ? 0 : resetToken.getAttemptCount()) + 1
+            );
+            tokenRepository.save(resetToken);
 
             throw new BadRequestException("Password does not meet policy requirements");
         }
@@ -331,36 +431,45 @@ public class AuthService {
         user.setInvalidAttemptCount(0);
         user.setLockTime(null);
         userRepository.save(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.REFRESH);
 
-        resetPasswordTokenRepository.delete(resetToken);
+        tokenRepository.delete(resetToken);
+
+        emailService.sendEmail(
+                user.getEmail(),
+                "Password Updated",
+                "Your password has been successfully updated. If this was not you, please contact support immediately."
+        );
     }
 
     @Transactional
-    public AuthResponse refreshToken(String refreshTokenValue){
+    public AuthResponse refreshToken(String refreshTokenValue) {
 
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByToken(refreshTokenValue)
+        Token refreshToken = tokenRepository
+                .findByTokenAndType(refreshTokenValue, TokenType.REFRESH)
                 .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
 
-        if(refreshToken.getExpiryDate().isBefore(LocalDateTime.now())){
+        if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Refresh token expired");
         }
 
         User user = refreshToken.getUser();
 
         /* DELETE OLD REFRESH TOKEN */
-        refreshTokenRepository.delete(refreshToken);
+        tokenRepository.delete(refreshToken);
 
         /* CREATE NEW REFRESH TOKEN */
         String newRefreshToken = UUID.randomUUID().toString();
 
-        RefreshToken token = new RefreshToken();
+        Token token = new Token();
         token.setToken(newRefreshToken);
+        token.setType(TokenType.REFRESH);
         token.setUser(user);
+        token.setUserEmail(user.getEmail());
         token.setExpiryDate(
                 LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration))
         );
-        refreshTokenRepository.save(token);
+        tokenRepository.save(token);
 
         /* CREATE NEW ACCESS TOKEN */
         String accessToken = jwtUtil.generateToken(
@@ -372,24 +481,25 @@ public class AuthService {
     }
 
     @Transactional
-    public void resendActivation(String email){
+    public void resendActivation(String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
-        if(user.getIsActive()){
+        if (user.getIsActive()) {
             throw new BadRequestException("Account already activated");
         }
 
-        activationTokenRepository.deleteByUser(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.ACTIVATION);
 
         generateActivationToken(user);
     }
+
     @Transactional
     public void logout(String token) {
 
         // prevent duplicate insert
-        if (blacklistedTokenRepository.existsByToken(token)) {
+        if (tokenRepository.existsByTokenAndType(token, TokenType.BLACKLISTED)) {
             return;
         }
 
@@ -401,20 +511,20 @@ public class AuthService {
             expiry = ex.getClaims().getExpiration();
         }
 
-        BlacklistedToken blacklistedToken = BlacklistedToken.builder()
-                .token(token)
-                .expiryDate(
-                        expiry.toInstant()
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDateTime()
-                )
-                .build();
+        Token blacklistedToken = new Token();
+        blacklistedToken.setToken(token);
+        blacklistedToken.setType(TokenType.BLACKLISTED);
+        blacklistedToken.setExpiryDate(
+                expiry.toInstant()
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime()
+        );
 
-        blacklistedTokenRepository.save(blacklistedToken);
+        tokenRepository.save(blacklistedToken);
 
         blacklistCacheService.blacklistToken(token);
 
         String email = jwtUtil.extractEmail(token);
-        refreshTokenRepository.deleteByUser_Email(email);
+        tokenRepository.deleteByUserEmailAndType(email, TokenType.REFRESH);
     }
 }

@@ -46,7 +46,7 @@ public class AuthController {
 
 
 
-    @GetMapping("/activate")
+    @PutMapping("/activate")
     public ResponseEntity<ApiResponse<String>> activateAccount(
             @RequestParam String token){
 
@@ -73,7 +73,7 @@ public class AuthController {
 
 
     @PostMapping("/forgot-password")
-    public ApiResponse<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ApiResponse<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
 
         authService.forgotPassword(request.getEmail());
 
@@ -81,7 +81,7 @@ public class AuthController {
     }
 
 
-    @PostMapping("/reset-password")
+    @PutMapping("/reset-password")
     public ApiResponse<String> resetPassword(@RequestBody ResetPasswordRequest request) {
 
         authService.resetPassword(request.getToken(), request.getPassword(),request.getConfirmPassword());
@@ -99,9 +99,11 @@ public class AuthController {
     }
 
     @PostMapping("/resend-activation")
-    public ApiResponse<String> resendActivation(@RequestParam String email){
+    public ApiResponse<String> resendActivation(
+            @Valid @RequestBody ResendActivationRequest request
+    ){
 
-        authService.resendActivation(email);
+        authService.resendActivation(request.getEmail());
 
         return ApiResponse.success("Activation email resent");
     }

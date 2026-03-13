@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Service
@@ -71,7 +72,7 @@ public class BootstrapService {
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(adminPassword));
         admin.setIsActive(true);
-        admin.setRoles(Set.of(adminRole));
+        admin.setRoles(new HashSet<>(Set.of(adminRole)));
 
         userRepository.save(admin);
     }

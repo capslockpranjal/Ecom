@@ -11,8 +11,9 @@ import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.mapper.UserMapper;
 import org.example.zenvybackend.user.repository.CustomerRepository;
-import org.example.zenvybackend.user.repository.RefreshTokenRepository;
+import org.example.zenvybackend.user.repository.TokenRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
+import org.example.zenvybackend.user.token.TokenType;
 import org.example.zenvybackend.user.service.EmailService;
 import org.example.zenvybackend.user.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +29,7 @@ public class UserServiceImpl implements UserService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenRepository tokenRepository;
     private final EmailService emailService;
 
     @Override
@@ -102,6 +103,6 @@ public class UserServiceImpl implements UserService {
                 "Your password was updated. If this was not you, please contact support immediately."
         );
 
-        refreshTokenRepository.deleteByUser(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.REFRESH);
     }
 }

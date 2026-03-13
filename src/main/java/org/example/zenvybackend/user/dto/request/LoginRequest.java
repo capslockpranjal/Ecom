@@ -1,12 +1,13 @@
 package org.example.zenvybackend.user.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 @Data
 public class LoginRequest {
 
-    @NotBlank
+    @NotBlank @Email
     private String email;
 
     @NotBlank
