@@ -30,6 +30,5 @@ public class Seller extends BaseEntity {
     @Column(nullable = false)
     private String companyContact;
 
-    @Column(nullable = false)
-    private String companyAddress;
+
 }

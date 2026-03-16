@@ -34,12 +34,27 @@ public class RegisterSellerRequest {
     @NotBlank
     private String companyContact;
 
+    // Company address details (to also populate address table)
+    @NotBlank
+    private String city;
+
+    @NotBlank
+    private String state;
+
+    @NotBlank
+    private String country;
+
+    @NotBlank
+    private String addressLine;
+
+    @NotBlank
+    private String zipCode;
+
     @NotBlank
     private String firstName;
 
     @NotBlank
     private String lastName;
 
-    @NotBlank
-    private String companyAddress;
+   
 }

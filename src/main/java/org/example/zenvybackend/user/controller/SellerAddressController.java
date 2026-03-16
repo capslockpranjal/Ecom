@@ -13,15 +13,15 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/customer/address")
+@RequestMapping("/seller/address")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('CUSTOMER')")
-public class AddressController {
+@PreAuthorize("hasRole('SELLER')")
+public class SellerAddressController {
 
     private final AddressService addressService;
 
     @PostMapping
-    public ApiResponse<String> addAddress(@Valid @RequestBody AddressRequest request){
+    public ApiResponse<String> addAddress(@Valid @RequestBody AddressRequest request) {
 
         addressService.addAddress(request);
 
@@ -29,7 +29,7 @@ public class AddressController {
     }
 
     @GetMapping
-    public ApiResponse<List<AddressResponse>> getAddresses(){
+    public ApiResponse<List<AddressResponse>> getAddresses() {
 
         return ApiResponse.success(
                 "Addresses fetched",
@@ -40,7 +40,8 @@ public class AddressController {
     @PatchMapping("/{id}")
     public ApiResponse<AddressResponse> updateAddress(
             @PathVariable UUID id,
-            @Valid @RequestBody AddressRequest request){
+            @Valid @RequestBody AddressRequest request
+    ) {
 
         return ApiResponse.success(
                 "Address updated",
@@ -49,10 +50,11 @@ public class AddressController {
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteAddress(@PathVariable UUID id){
+    public ApiResponse<String> deleteAddress(@PathVariable UUID id) {
 
         addressService.deleteAddress(id);
 
         return ApiResponse.success("Address deleted");
     }
 }
+

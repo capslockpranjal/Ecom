@@ -11,6 +11,7 @@ import org.example.zenvybackend.user.dto.request.LoginRequest;
 import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
 import org.example.zenvybackend.user.dto.request.RegisterSellerRequest;
 import org.example.zenvybackend.user.dto.response.AuthResponse;
+import org.example.zenvybackend.user.entity.Address;
 import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Role;
 import org.example.zenvybackend.user.entity.Seller;
@@ -37,6 +38,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final SellerRepository sellerRepository;
+    private final AddressRepository addressRepository;
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -191,11 +193,27 @@ public class AuthService {
             }
         }
 
+        if (seller.getCompanyName() == null || !seller.getCompanyName().equals(request.getCompanyName())) {
+            if (sellerRepository.existsByCompanyName(request.getCompanyName())) {
+                throw new BadRequestException("Company name already registered");
+            }
+        }
+
         seller.setGst(request.getGst());
         seller.setCompanyName(request.getCompanyName());
         seller.setCompanyContact(request.getCompanyContact());
-        seller.setCompanyAddress(request.getCompanyAddress()); 
         sellerRepository.save(seller);
+
+        // also persist company address into address table for this seller user
+        Address address = new Address();
+        address.setUser(user);
+        address.setCity(request.getCity());
+        address.setState(request.getState());
+        address.setCountry(request.getCountry());
+        address.setAddressLine(request.getAddressLine());
+        address.setZipCode(request.getZipCode());
+        address.setLabel("Company");
+        addressRepository.save(address);
 
         emailService.sendEmail(
                 user.getEmail(),
