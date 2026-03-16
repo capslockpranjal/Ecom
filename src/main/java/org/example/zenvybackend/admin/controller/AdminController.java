@@ -5,6 +5,7 @@ import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
 import org.example.zenvybackend.admin.service.AdminService;
 import org.example.zenvybackend.common.response.ApiResponse;
+import org.example.zenvybackend.common.response.PagedResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,31 +26,27 @@ public class AdminController {
     }
 
     @GetMapping("/customers")
-    public ApiResponse<List<AdminCustomerResponse>> listCustomers(
-            @RequestParam(defaultValue = "0") int pageNo,
+    public PagedResponse<AdminCustomerResponse> getCustomers(
+
+            @RequestParam(defaultValue = "0") int pageOffset,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) String filter,
-            @RequestParam(required = false, defaultValue = "asc") String sortDirection
+            @RequestParam(defaultValue = "user.id") String sort,
+            @RequestParam(required = false) String email
     ) {
 
-        return ApiResponse.success(
-                "Customers fetched successfully",
-                adminService.listCustomers(pageNo, pageSize, filter, sortDirection)
-        );
+        return adminService.listCustomers(pageOffset, pageSize, sort, email);
     }
 
     @GetMapping("/sellers")
-    public ApiResponse<List<AdminSellerResponse>> listSellers(
-            @RequestParam(defaultValue = "0") int pageNo,
+    public PagedResponse<AdminSellerResponse> getSellers(
+
+            @RequestParam(defaultValue = "0") int pageOffset,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) String filter,
-            @RequestParam(required = false, defaultValue = "asc") String sortDirection
+            @RequestParam(defaultValue = "user.id") String sort,
+            @RequestParam(required = false) String email
     ) {
 
-        return ApiResponse.success(
-                "Sellers fetched successfully",
-                adminService.listSellers(pageNo, pageSize, filter, sortDirection)
-        );
+        return adminService.listSellers(pageOffset, pageSize, sort, email);
     }
 
     @PatchMapping("/customers/{id}/activate")

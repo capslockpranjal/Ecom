@@ -6,17 +6,20 @@ import org.example.zenvybackend.admin.dto.AdminSellerResponse;
 import org.example.zenvybackend.admin.service.AdminService;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
+import org.example.zenvybackend.common.response.PagedResponse;
 import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Seller;
 import org.example.zenvybackend.user.entity.User;
-import org.example.zenvybackend.user.mapper.AddressMapper;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.example.zenvybackend.user.repository.SellerRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
 import org.example.zenvybackend.user.service.EmailService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,102 +33,106 @@ public class AdminServiceImpl implements AdminService {
     private final EmailService emailService;
 
     @Override
-    public List<AdminCustomerResponse> listCustomers(int pageNo, int pageSize, String filter, String sortDirection) {
+    public PagedResponse<AdminCustomerResponse> listCustomers(
+            int pageOffset,
+            int pageSize,
+            String sort,
+            String email
+    ) {
 
-        List<Customer> all = customerRepository.findAll();
+        Pageable pageable = PageRequest.of(pageOffset, pageSize, Sort.by(sort));
 
-        // map to DTOs with joined user
-        List<AdminCustomerResponse> mapped = all.stream()
+        Page<Customer> page;
+
+        if (email != null && !email.isBlank()) {
+            page = customerRepository.findByUserEmailContainingIgnoreCase(email, pageable);
+        } else {
+            page = customerRepository.findAll(pageable);
+        }
+
+        if (page.isEmpty()) {
+            throw new ResourceNotFoundException("No customers registered");
+        }
+
+        List<AdminCustomerResponse> customers = page.stream()
                 .map(c -> {
                     User u = c.getUser();
                     return AdminCustomerResponse.builder()
                             .id(u.getId())
-                            .firstName(u.getFirstName())
-                            .lastName(u.getLastName())
+                            .fullName(u.getFirstName() + " " + u.getLastName())
                             .email(u.getEmail())
                             .isActive(u.getIsActive())
-                            .contact(c.getContact())
                             .build();
                 })
                 .toList();
 
-        // filter by name/email/contact if provided
-        if (filter != null && !filter.isBlank()) {
-            String f = filter.toLowerCase();
-            mapped = mapped.stream()
-                    .filter(c -> (c.getFirstName() != null && c.getFirstName().toLowerCase().contains(f))
-                            || (c.getLastName() != null && c.getLastName().toLowerCase().contains(f))
-                            || (c.getEmail() != null && c.getEmail().toLowerCase().contains(f))
-                            || (c.getContact() != null && c.getContact().toLowerCase().contains(f)))
-                    .toList();
-        }
-
-        // simple sort by firstName asc/desc
-        Comparator<AdminCustomerResponse> comparator =
-                Comparator.comparing(c -> c.getFirstName() == null ? "" : c.getFirstName());
-        if ("desc".equalsIgnoreCase(sortDirection)) {
-            comparator = comparator.reversed();
-        }
-        mapped = mapped.stream().sorted(comparator).toList();
-
-        // manual pagination
-        int fromIndex = Math.max(pageNo, 0) * Math.max(pageSize, 1);
-        if (fromIndex >= mapped.size()) {
-            return List.of();
-        }
-        int toIndex = Math.min(fromIndex + pageSize, mapped.size());
-        return mapped.subList(fromIndex, toIndex);
+        return PagedResponse.<AdminCustomerResponse>builder()
+                .content(customers)
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .build();
     }
 
     @Override
-    public List<AdminSellerResponse> listSellers(int pageNo, int pageSize, String filter, String sortDirection) {
+    public PagedResponse<AdminSellerResponse> listSellers(
+            int pageOffset,
+            int pageSize,
+            String sort,
+            String email
+    ) {
 
-        List<Seller> all = sellerRepository.findAllWithUserAndAddresses();
+        Pageable pageable = PageRequest.of(pageOffset, pageSize, Sort.by(sort));
 
-        List<AdminSellerResponse> mapped = all.stream()
+        Page<Seller> page;
+
+        if (email != null && !email.isBlank()) {
+            page = sellerRepository.findByUserEmailContainingIgnoreCase(email, pageable);
+        } else {
+            page = sellerRepository.findAll(pageable);
+        }
+
+        if (page.isEmpty()) {
+            throw new ResourceNotFoundException("No sellers registered");
+        }
+
+        List<AdminSellerResponse> sellers = page.stream()
                 .map(s -> {
+
                     User u = s.getUser();
-                    var addresses = u.getAddresses()
+
+                    String companyAddress = u.getAddresses()
                             .stream()
-                            .map(AddressMapper::toResponse)
-                            .toList();
+                            .findFirst()
+                            .map(a -> a.getAddressLine() + ", "
+                                    + a.getCity() + ", "
+                                    + a.getState() + ", "
+                                    + a.getCountry() + " - "
+                                    + a.getZipCode())
+                            .orElse(null);
+
                     return AdminSellerResponse.builder()
                             .id(u.getId())
-                            .firstName(u.getFirstName())
-                            .lastName(u.getLastName())
+                            .fullName(u.getFirstName() + " " + u.getLastName())
                             .email(u.getEmail())
                             .isActive(u.getIsActive())
                             .companyName(s.getCompanyName())
+                            .companyAddress(companyAddress)
                             .companyContact(s.getCompanyContact())
-                            .gst(s.getGst())
-                            .addresses(addresses)
                             .build();
                 })
                 .toList();
 
-        if (filter != null && !filter.isBlank()) {
-            String f = filter.toLowerCase();
-            mapped = mapped.stream()
-                    .filter(s -> (s.getFirstName() != null && s.getFirstName().toLowerCase().contains(f))
-                            || (s.getLastName() != null && s.getLastName().toLowerCase().contains(f))
-                            || (s.getEmail() != null && s.getEmail().toLowerCase().contains(f))
-                            || (s.getCompanyName() != null && s.getCompanyName().toLowerCase().contains(f)))
-                    .toList();
-        }
-
-        Comparator<AdminSellerResponse> comparator =
-                Comparator.comparing(s -> s.getCompanyName() == null ? "" : s.getCompanyName());
-        if ("desc".equalsIgnoreCase(sortDirection)) {
-            comparator = comparator.reversed();
-        }
-        mapped = mapped.stream().sorted(comparator).toList();
-
-        int fromIndex = Math.max(pageNo, 0) * Math.max(pageSize, 1);
-        if (fromIndex >= mapped.size()) {
-            return List.of();
-        }
-        int toIndex = Math.min(fromIndex + pageSize, mapped.size());
-        return mapped.subList(fromIndex, toIndex);
+        return PagedResponse.<AdminSellerResponse>builder()
+                .content(sellers)
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .build();
     }
 
     @Override

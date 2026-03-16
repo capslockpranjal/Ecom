@@ -2,16 +2,26 @@ package org.example.zenvybackend.admin.service;
 
 import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
+import org.example.zenvybackend.common.response.PagedResponse;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface AdminService {
 
-    List<AdminCustomerResponse> listCustomers(int pageNo, int pageSize, String filter, String sortDirection);
+    PagedResponse<AdminCustomerResponse> listCustomers(
+            int pageOffset,
+            int pageSize,
+            String sort,
+            String email
+    );
 
-    List<AdminSellerResponse> listSellers(int pageNo, int pageSize, String filter, String sortDirection);
-
+    PagedResponse<AdminSellerResponse> listSellers(
+            int pageOffset,
+            int pageSize,
+            String sort,
+            String email
+    );
     void activateCustomer(UUID userId);
 
     void deactivateCustomer(UUID userId);
