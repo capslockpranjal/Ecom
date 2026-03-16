@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-
 @RestController
 @RequestMapping("/seller/address")
 @RequiredArgsConstructor
@@ -30,30 +29,29 @@ public class SellerAddressController {
     }
 
     @GetMapping
-    public ApiResponse<List<AddressResponse>> getAddresses() {
+    public ApiResponse<AddressResponse> getAddress() {
 
         return ApiResponse.success(
-                "Addresses fetched",
-                addressService.getAddresses()
+                "Address fetched",
+                addressService.getSellerAddress()
         );
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping
     public ApiResponse<AddressResponse> updateAddress(
-            @PathVariable UUID id,
             @Valid @RequestBody UpdateAddressRequest request
     ) {
 
         return ApiResponse.success(
                 "Address updated",
-                addressService.updateAddress(id, request)
+                addressService.updateSellerAddress(request)
         );
     }
 
-    @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteAddress(@PathVariable UUID id) {
+    @DeleteMapping
+    public ApiResponse<String> deleteAddress() {
 
-        addressService.deleteAddress(id);
+        addressService.deleteSellerAddress();
 
         return ApiResponse.success("Address deleted");
     }

@@ -1,6 +1,7 @@
 package org.example.zenvybackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.security.util.SecurityUtil;
 import org.example.zenvybackend.user.dto.request.AddressRequest;
@@ -28,8 +29,19 @@ public class AddressServiceImpl implements AddressService {
     public void addAddress(AddressRequest request) {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
+
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Check if user is seller
+        boolean isSeller = user.getRoles()
+                .stream()
+                .anyMatch(role -> role.getAuthority().equals("ROLE_SELLER"));
+
+        // Seller can only have one address
+        if (isSeller && addressRepository.existsByUserId(currentUserId)) {
+            throw new BadRequestException("Seller can have only one address");
+        }
 
         Address address = AddressMapper.toEntity(request);
         address.setUser(user);
@@ -92,6 +104,64 @@ public class AddressServiceImpl implements AddressService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Address not found"));
 
+        addressRepository.delete(address);
+    }
+
+    @Override
+    public AddressResponse getSellerAddress() {
+
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+
+        Address address = addressRepository
+                .findFirstByUserId(currentUserId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Address not found"));
+        return AddressMapper.toResponse(address);
+    }
+
+    @Override
+    public AddressResponse updateSellerAddress(UpdateAddressRequest request) {
+
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+
+        Address address = addressRepository
+                .findFirstByUserId(currentUserId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Address not found"));
+
+        if (request.getCity() != null) {
+            address.setCity(request.getCity());
+        }
+        if (request.getState() != null) {
+            address.setState(request.getState());
+        }
+        if (request.getCountry() != null) {
+            address.setCountry(request.getCountry());
+        }
+        if (request.getAddressLine() != null) {
+            address.setAddressLine(request.getAddressLine());
+        }
+        if (request.getZipCode() != null) {
+            address.setZipCode(request.getZipCode());
+        }
+        if (request.getLabel() != null) {
+            address.setLabel(request.getLabel());
+        }
+
+        addressRepository.save(address);
+
+        return AddressMapper.toResponse(address);
+    }
+
+    @Override
+    public void deleteSellerAddress() {
+
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+
+        Address address = addressRepository
+                .findFirstByUserId(currentUserId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Address not found"));
         addressRepository.delete(address);
     }
 }

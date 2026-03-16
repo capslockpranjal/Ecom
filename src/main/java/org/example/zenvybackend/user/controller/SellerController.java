@@ -39,7 +39,7 @@ public class SellerController {
     }
 
     @PatchMapping("/password")
-    public ApiResponse<String> changePassword(
+    public ApiResponse<Void> changePassword(
             @Valid @RequestBody ChangePasswordRequest request
     ) {
 

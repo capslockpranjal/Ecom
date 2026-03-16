@@ -7,8 +7,10 @@ import org.example.zenvybackend.security.util.SecurityUtil;
 import org.example.zenvybackend.user.dto.request.ChangePasswordRequest;
 import org.example.zenvybackend.user.dto.request.UpdateCustomerProfileRequest;
 import org.example.zenvybackend.user.dto.request.UpdateSellerProfileRequest;
+import org.example.zenvybackend.user.dto.response.AddressResponse;
 import org.example.zenvybackend.user.dto.response.CustomerProfileResponse;
 import org.example.zenvybackend.user.dto.response.SellerProfileResponse;
+import org.example.zenvybackend.user.entity.Address;
 import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Seller;
 import org.example.zenvybackend.user.entity.User;
@@ -98,26 +100,18 @@ public class UserServiceImpl implements UserService {
     public SellerProfileResponse getSellerProfile() {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
+
         Seller seller = sellerRepository.findByIdWithUserAndAddresses(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
 
         User sellerUser = seller.getUser();
-        // map addresses of this seller (user) from address table (already loaded via fetch join)
-        var addressResponses = sellerUser.getAddresses()
-                .stream()
-                .map(AddressMapper::toResponse)
-                .toList();
 
-        return SellerProfileResponse.builder()
-                .id(sellerUser.getId())
-                .firstName(sellerUser.getFirstName())
-                .lastName(sellerUser.getLastName())
-                .email(sellerUser.getEmail())
-                .companyName(seller.getCompanyName())
-                .companyContact(seller.getCompanyContact())
-                .gst(seller.getGst())
-                .addresses(addressResponses)
-                .build();
+        Address address = sellerUser.getAddresses()
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        return UserMapper.toSellerProfileResponse(seller, address);
     }
 
     @Transactional
@@ -147,26 +141,17 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         sellerRepository.save(seller);
 
-        // Return the same shape as GET /seller/profile (including addresses).
+
         Seller refreshed = sellerRepository.findByIdWithUserAndAddresses(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
 
         User sellerUser = refreshed.getUser();
-        var addressResponses = sellerUser.getAddresses()
+        Address address = sellerUser.getAddresses()
                 .stream()
-                .map(AddressMapper::toResponse)
-                .toList();
+                .findFirst()
+                .orElse(null);
 
-        return SellerProfileResponse.builder()
-                .id(sellerUser.getId())
-                .firstName(sellerUser.getFirstName())
-                .lastName(sellerUser.getLastName())
-                .email(sellerUser.getEmail())
-                .companyName(refreshed.getCompanyName())
-                .companyContact(refreshed.getCompanyContact())
-                .gst(refreshed.getGst())
-                .addresses(addressResponses)
-                .build();
+        return UserMapper.toSellerProfileResponse(refreshed, address);
     }
 
     @Transactional
