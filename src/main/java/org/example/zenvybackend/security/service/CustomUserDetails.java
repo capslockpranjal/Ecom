@@ -1,47 +1,47 @@
 package org.example.zenvybackend.security.service;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.example.zenvybackend.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
-    private final User user;
+    @Getter
+    private final UUID id;
+
+    @Getter
+    private final String email;
+
+    private final Collection<? extends GrantedAuthority> authorities;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles()
-                .stream()
-                .map(role -> (GrantedAuthority) () -> role.getAuthority())
-                .toList();
+        return authorities;
     }
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return null;
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
-    }
-
-    public User getUser(){
-        return user;
+        return email;
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return !user.getIsExpired();
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return !user.getIsLocked();
+        return true;
     }
 
     @Override
@@ -51,6 +51,6 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return user.getIsActive();
+        return true;
     }
 }

@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +42,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public CustomerProfileResponse getCustomerProfile() {
 
-        User user = SecurityUtil.getCurrentUser();
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Customer customer = customerRepository
                 .findByUser(user)
@@ -55,10 +58,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public CustomerProfileResponse updateCustomerProfile(UpdateCustomerProfileRequest request) {
 
-
-
-        User current = SecurityUtil.getCurrentUser();
-        User user = userRepository.findById(current.getId())
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Customer customer = customerRepository.findById(user.getId())
@@ -96,8 +97,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public SellerProfileResponse getSellerProfile() {
 
-        User user = SecurityUtil.getCurrentUser();
-        Seller seller = sellerRepository.findByIdWithUserAndAddresses(user.getId())
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        Seller seller = sellerRepository.findByIdWithUserAndAddresses(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
 
         User sellerUser = seller.getUser();
@@ -123,8 +124,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public SellerProfileResponse updateSellerProfile(UpdateSellerProfileRequest request) {
 
-        User current = SecurityUtil.getCurrentUser();
-        User user = userRepository.findById(current.getId())
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Seller seller = sellerRepository.findById(user.getId())
@@ -172,7 +173,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public void changePassword(ChangePasswordRequest request) {
 
-        User user = SecurityUtil.getCurrentUser();
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if(user.getIsLocked()){
             throw new BadRequestException("Account is locked");

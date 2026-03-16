@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.AddressRequest;
+import org.example.zenvybackend.user.dto.request.UpdateAddressRequest;
 import org.example.zenvybackend.user.dto.response.AddressResponse;
 import org.example.zenvybackend.user.service.AddressService;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,7 +41,7 @@ public class SellerAddressController {
     @PatchMapping("/{id}")
     public ApiResponse<AddressResponse> updateAddress(
             @PathVariable UUID id,
-            @Valid @RequestBody AddressRequest request
+            @Valid @RequestBody UpdateAddressRequest request
     ) {
 
         return ApiResponse.success(

@@ -9,7 +9,6 @@ import org.example.zenvybackend.security.handler.CustomAuthenticationEntryPoint;
 import org.example.zenvybackend.security.service.BlacklistCacheService;
 import org.example.zenvybackend.security.service.CustomUserDetails;
 import org.example.zenvybackend.security.util.JwtUtil;
-import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -73,7 +72,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             String email = jwtUtil.extractEmail(token);
-            User user = userRepository.findByEmail(email)
+            var user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new BadCredentialsException("User not found"));
 
             Date issuedAt = jwtUtil.extractIssuedAt(token);
@@ -98,9 +97,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 .map(SimpleGrantedAuthority::new)
                                 .toList();
 
-
-
-                CustomUserDetails userDetails = new CustomUserDetails(user);
+                CustomUserDetails userDetails = new CustomUserDetails(
+                        user.getId(),
+                        user.getEmail(),
+                        authorities
+                );
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
