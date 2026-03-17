@@ -1,5 +1,6 @@
 package org.example.zenvybackend.common.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
 
@@ -15,6 +16,7 @@ public class ApiResponse<T> {
 
     private T data;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
 
     /* SUCCESS RESPONSE WITH DATA */
@@ -38,6 +40,13 @@ public class ApiResponse<T> {
                 .build();
     }
 
+    public static <T> ApiResponse<T> success(T data) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .data(data)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
     /* FAILURE RESPONSE */
 
     public static <T> ApiResponse<T> failure(String message) {

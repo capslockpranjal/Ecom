@@ -29,7 +29,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpServletResponse.SC_FORBIDDEN)
                 .error("FORBIDDEN")
-                .message("You do not have permission to access this resource")
+                .message("You do not have the required authorization to access this resource")
                 .path(request.getRequestURI())
                 .build();
 

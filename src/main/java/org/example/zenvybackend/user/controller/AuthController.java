@@ -5,10 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.response.ApiResponse;
-import org.example.zenvybackend.user.dto.request.ForgotPasswordRequest;
-import org.example.zenvybackend.user.dto.request.LoginRequest;
-import org.example.zenvybackend.user.dto.request.RegisterCustomerRequest;
-import org.example.zenvybackend.user.dto.request.ResetPasswordRequest;
+import org.example.zenvybackend.user.dto.request.*;
 import org.example.zenvybackend.user.dto.response.AuthResponse;
 import org.example.zenvybackend.user.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +35,7 @@ public class AuthController {
 
     @PostMapping("/register/seller")
     public ResponseEntity<ApiResponse<String>> registerSeller(
-            @Valid @RequestBody RegisterCustomerRequest request){
+            @Valid @RequestBody RegisterSellerRequest request){
 
         authService.registerSeller(request);
 
@@ -49,7 +46,7 @@ public class AuthController {
 
 
 
-    @GetMapping("/activate")
+    @PutMapping("/activate")
     public ResponseEntity<ApiResponse<String>> activateAccount(
             @RequestParam String token){
 
@@ -76,7 +73,7 @@ public class AuthController {
 
 
     @PostMapping("/forgot-password")
-    public ApiResponse<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ApiResponse<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
 
         authService.forgotPassword(request.getEmail());
 
@@ -84,7 +81,7 @@ public class AuthController {
     }
 
 
-    @PostMapping("/reset-password")
+    @PutMapping("/reset-password")
     public ApiResponse<String> resetPassword(@RequestBody ResetPasswordRequest request) {
 
         authService.resetPassword(request.getToken(), request.getPassword(),request.getConfirmPassword());
@@ -102,9 +99,11 @@ public class AuthController {
     }
 
     @PostMapping("/resend-activation")
-    public ApiResponse<String> resendActivation(@RequestParam String email){
+    public ApiResponse<String> resendActivation(
+            @Valid @RequestBody ResendActivationRequest request
+    ){
 
-        authService.resendActivation(email);
+        authService.resendActivation(request.getEmail());
 
         return ApiResponse.success("Activation email resent");
     }

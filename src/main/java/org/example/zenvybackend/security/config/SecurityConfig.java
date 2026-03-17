@@ -2,6 +2,7 @@ package org.example.zenvybackend.security.config;
 
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.security.filter.JwtAuthenticationFilter;
+import org.example.zenvybackend.security.filter.LoginLockoutFilter;
 import org.example.zenvybackend.security.handler.CustomAccessDeniedHandler;
 import org.example.zenvybackend.security.handler.CustomAuthenticationEntryPoint;
 import org.springframework.context.annotation.*;
@@ -18,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final LoginLockoutFilter loginLockoutFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
@@ -42,10 +44,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**", "/error").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+                        .requestMatchers("/customer/**", "/api/**").authenticated()
+                        .anyRequest().permitAll()
                 )
 
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(loginLockoutFilter, JwtAuthenticationFilter.class);
+                
 
         return http.build();
     }

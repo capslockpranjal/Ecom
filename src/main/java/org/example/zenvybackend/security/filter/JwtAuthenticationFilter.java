@@ -7,7 +7,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.security.handler.CustomAuthenticationEntryPoint;
 import org.example.zenvybackend.security.service.BlacklistCacheService;
+import org.example.zenvybackend.security.service.CustomUserDetails;
 import org.example.zenvybackend.security.util.JwtUtil;
+import org.example.zenvybackend.user.repository.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -25,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final BlacklistCacheService blacklistCacheService;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
-
+    private final UserRepository userRepository;
 
 
 
@@ -39,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        if (path.startsWith("/auth/logout")){
+        if (path.startsWith("/auth")){
             filterChain.doFilter(request, response);
             return;
         }
@@ -68,6 +72,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             String email = jwtUtil.extractEmail(token);
+            var user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+            Date issuedAt = jwtUtil.extractIssuedAt(token);
+
+            if(user.getPasswordUpdateDate() != null &&
+                    issuedAt.toInstant().isBefore(
+                            user.getPasswordUpdateDate()
+                                    .atZone(ZoneId.systemDefault())
+                                    .toInstant()
+                    )){
+
+                authenticationEntryPoint.commence(request, response,
+                        new BadCredentialsException("Token expired due to password change"));
+                return;
+            }
 
             if(SecurityContextHolder.getContext().getAuthentication() == null){
 
@@ -77,9 +97,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 .map(SimpleGrantedAuthority::new)
                                 .toList();
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+                CustomUserDetails userDetails = new CustomUserDetails(
+                        user.getId(),
+                        user.getEmail(),
+                        authorities
+                );
 
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 

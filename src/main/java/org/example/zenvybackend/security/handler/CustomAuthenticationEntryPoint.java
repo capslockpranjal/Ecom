@@ -25,11 +25,15 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
             AuthenticationException authException
     ) throws IOException {
 
+        String message = authException != null && authException.getMessage() != null && !authException.getMessage().isBlank()
+                ? authException.getMessage()
+                : "No logged-in user found";
+
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpServletResponse.SC_UNAUTHORIZED)
                 .error("UNAUTHORIZED")
-                .message("Authentication required or token invalid")
+                .message(message)
                 .path(request.getRequestURI())
                 .build();
 

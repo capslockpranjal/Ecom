@@ -4,22 +4,22 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+
 
 @MappedSuperclass
 @Getter
 @Setter
+@EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
+  
     private Boolean isDeleted = false;
 
     @CreationTimestamp
@@ -28,8 +28,11 @@ public abstract class BaseEntity {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @CreatedBy
+    @Column(name = "created_by")
+    private String createdBy;
 
-    private UUID createdBy;
-
-    private UUID updatedBy;
+    @LastModifiedBy
+    @Column(name = "updated_by")
+    private String updatedBy;
 }
