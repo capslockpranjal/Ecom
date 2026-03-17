@@ -106,7 +106,7 @@ public class AuthService {
 
         addRoleIfMissing(user, RoleConstants.CUSTOMER);
 
-        // ... existing code up to userRepository.save(user);
+
         userRepository.save(user);
 
 // Ensure customer profile exists and set contact
@@ -328,7 +328,7 @@ public void activateAccount(String token) {
 
                 userRepository.save(user);
 
-            } 
+            }
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {

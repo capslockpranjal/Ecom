@@ -3,15 +3,13 @@ package org.example.zenvybackend.user.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.response.ApiResponse;
-import org.example.zenvybackend.user.dto.request.AddressRequest;
 import org.example.zenvybackend.user.dto.request.UpdateAddressRequest;
 import org.example.zenvybackend.user.dto.response.AddressResponse;
 import org.example.zenvybackend.user.service.AddressService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
+
 @RestController
 @RequestMapping("/seller/address")
 @RequiredArgsConstructor
@@ -19,14 +17,6 @@ import java.util.UUID;
 public class SellerAddressController {
 
     private final AddressService addressService;
-
-    @PostMapping
-    public ApiResponse<String> addAddress(@Valid @RequestBody AddressRequest request) {
-
-        addressService.addAddress(request);
-
-        return ApiResponse.success("Address added successfully");
-    }
 
     @GetMapping
     public ApiResponse<AddressResponse> getAddress() {
