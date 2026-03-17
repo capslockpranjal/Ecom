@@ -18,11 +18,15 @@ public interface SellerRepository extends JpaRepository<Seller, UUID> {
 
     boolean existsByCompanyName(String companyName);
 
-    @Query("select s from Seller s join fetch s.user u left join fetch u.addresses where s.userId = :id")
+    @Query("""
+select s
+from Seller s
+join fetch s.user u
+left join fetch u.addresses a
+where s.userId = :id
+and (a.isDeleted = false or a is null)
+""")
     Optional<Seller> findByIdWithUserAndAddresses(@Param("id") UUID id);
-
-    @Query("select distinct s from Seller s join fetch s.user u left join fetch u.addresses")
-    List<Seller> findAllWithUserAndAddresses();
 
     @EntityGraph(attributePaths = {"user", "user.addresses"})
     Page<Seller> findByUserEmailContainingIgnoreCase(String email, Pageable pageable);

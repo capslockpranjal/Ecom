@@ -4,8 +4,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.ChangePasswordRequest;
+import org.example.zenvybackend.user.dto.request.UpdateAddressRequest;
 import org.example.zenvybackend.user.dto.request.UpdateSellerProfileRequest;
+import org.example.zenvybackend.user.dto.response.AddressResponse;
 import org.example.zenvybackend.user.dto.response.SellerProfileResponse;
+import org.example.zenvybackend.user.service.AddressService;
 import org.example.zenvybackend.user.service.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class SellerController {
 
     private final UserService userService;
+    private final AddressService addressService;
 
     @GetMapping("/profile")
     public ApiResponse<SellerProfileResponse> getProfile() {
@@ -46,6 +50,17 @@ public class SellerController {
         userService.changePassword(request);
 
         return ApiResponse.success("Password updated successfully");
+    }
+
+    @PatchMapping("/address")
+    public ApiResponse<AddressResponse> updateAddress(
+            @Valid @RequestBody UpdateAddressRequest request
+    ) {
+
+        return ApiResponse.success(
+                "Address updated",
+                addressService.updateSellerAddress(request)
+        );
     }
 }
 

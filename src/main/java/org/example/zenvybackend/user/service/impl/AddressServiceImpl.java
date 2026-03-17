@@ -39,7 +39,7 @@ public class AddressServiceImpl implements AddressService {
                 .anyMatch(role -> role.getAuthority().equals("ROLE_SELLER"));
 
         // Seller can only have one address
-        if (isSeller && addressRepository.existsByUserId(currentUserId)) {
+        if (isSeller && addressRepository.existsByUserIdAndIsDeletedFalse(currentUserId)) {
             throw new BadRequestException("Seller can have only one address");
         }
 
@@ -107,17 +107,6 @@ public class AddressServiceImpl implements AddressService {
         addressRepository.delete(address);
     }
 
-    @Override
-    public AddressResponse getSellerAddress() {
-
-        UUID currentUserId = SecurityUtil.getCurrentUserId();
-
-        Address address = addressRepository
-                .findFirstByUserId(currentUserId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Address not found"));
-        return AddressMapper.toResponse(address);
-    }
 
     @Override
     public AddressResponse updateSellerAddress(UpdateAddressRequest request) {
@@ -153,15 +142,4 @@ public class AddressServiceImpl implements AddressService {
         return AddressMapper.toResponse(address);
     }
 
-    @Override
-    public void deleteSellerAddress() {
-
-        UUID currentUserId = SecurityUtil.getCurrentUserId();
-
-        Address address = addressRepository
-                .findFirstByUserId(currentUserId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Address not found"));
-        addressRepository.delete(address);
-    }
 }

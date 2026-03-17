@@ -17,10 +17,9 @@ public interface AddressService {
 
     void deleteAddress(UUID id);
 
-    AddressResponse getSellerAddress();
 
     AddressResponse updateSellerAddress(UpdateAddressRequest request);
 
-    void deleteSellerAddress();
+
 
 }

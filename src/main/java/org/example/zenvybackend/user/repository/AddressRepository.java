@@ -16,7 +16,7 @@ public interface AddressRepository extends JpaRepository<Address, UUID> {
 
     Optional<Address> findByIdAndUserId(UUID addressId, UUID userId);
 
-    boolean existsByUserId(UUID userId);
+    boolean existsByUserIdAndIsDeletedFalse(UUID userId);
 
     Optional<Address> findFirstByUserId(UUID userId);
 
