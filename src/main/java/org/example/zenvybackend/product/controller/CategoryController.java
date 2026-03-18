@@ -1,5 +1,6 @@
 package org.example.zenvybackend.product.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.product.dto.request.*;
@@ -19,7 +20,7 @@ public class CategoryController {
 
     @PostMapping
     public ApiResponse<UUID> createCategory(
-            @RequestBody CreateCategoryRequest request
+           @Valid @RequestBody CreateCategoryRequest request
     ) {
 
         return ApiResponse.success(
@@ -57,7 +58,7 @@ public class CategoryController {
     public ApiResponse<Void> updateCategory(
 
             @PathVariable UUID categoryId,
-            @RequestBody UpdateCategoryRequest request
+            @Valid @RequestBody UpdateCategoryRequest request
     ) {
 
         categoryService.updateCategory(categoryId, request);
@@ -91,7 +92,7 @@ public class CategoryController {
 
     @PostMapping("/metadata-field")
     public ApiResponse<UUID> addMetadataField(
-            @RequestBody AddMetadataFieldRequest request) {
+            @Valid @RequestBody AddMetadataFieldRequest request) {
 
         return ApiResponse.success(
                 "Metadata field created",
@@ -102,7 +103,7 @@ public class CategoryController {
     @PostMapping("/{categoryId}/metadata")
     public ApiResponse<Void> addMetadataValues(
             @PathVariable UUID categoryId,
-            @RequestBody AddMetadataValueRequest request) {
+           @Valid @RequestBody AddMetadataValueRequest request) {
 
         categoryService.addMetadataValues(categoryId, request);
 

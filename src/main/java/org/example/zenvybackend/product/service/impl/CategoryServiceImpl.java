@@ -3,6 +3,7 @@ package org.example.zenvybackend.product.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
+import org.example.zenvybackend.common.util.PageUtils;
 import org.example.zenvybackend.product.dto.request.AddMetadataValueRequest;
 import org.example.zenvybackend.product.dto.request.CreateCategoryRequest;
 import org.example.zenvybackend.product.dto.request.PageRequestDto;
@@ -11,6 +12,7 @@ import org.example.zenvybackend.product.dto.response.*;
 import org.example.zenvybackend.product.entity.Category;
 import org.example.zenvybackend.product.entity.CategoryMetadataField;
 import org.example.zenvybackend.product.entity.CategoryMetadataFieldValues;
+import org.example.zenvybackend.product.entity.CategoryMetadataFieldValuesId;
 import org.example.zenvybackend.product.repository.CategoryMetadataFieldRepository;
 import org.example.zenvybackend.product.repository.CategoryMetadataFieldValuesRepository;
 import org.example.zenvybackend.product.repository.CategoryRepository;
@@ -33,6 +35,11 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public UUID createCategory(CreateCategoryRequest request) {
 
+
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new BadRequestException("Category name cannot be empty");
+        }
+
         Category parent = null;
 
         if (request.getParentId() != null) {
@@ -40,7 +47,6 @@ public class CategoryServiceImpl implements CategoryService {
             parent = categoryRepository.findById(request.getParentId())
                     .orElseThrow(() ->
                             new ResourceNotFoundException("Parent category not found"));
-
         }
 
         if (categoryRepository
@@ -61,7 +67,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         Category category = Category.builder()
-                .name(request.getName())
+                .name(request.getName().trim()) // ✅ trim added
                 .parentCategory(parent)
                 .build();
 
@@ -73,17 +79,23 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public Page<CategoryTreeResponse> getCategories(UUID categoryId, PageRequestDto dto) {
 
-        Sort.Direction direction =
-                dto.getOrder().equalsIgnoreCase("desc")
-                        ? Sort.Direction.DESC
-                        : Sort.Direction.ASC;
 
-        Pageable pageable = PageRequest.of(
-                dto.getOffset(),
-                dto.getMax(),
-                Sort.by(direction, dto.getSort())
+        String sort = (dto.getSort() == null || dto.getSort().isBlank()) ? "name" : dto.getSort();
+        String order = (dto.getOrder() == null || dto.getOrder().isBlank()) ? "asc" : dto.getOrder();
+
+        int max = (dto.getMax() == null || dto.getMax() <= 0) ? 10 : dto.getMax();
+        int offset = (dto.getOffset() == null || dto.getOffset() < 0) ? 0 : dto.getOffset();
+
+        List<String> allowedSortFields = List.of("name", "id");
+
+        if (!allowedSortFields.contains(sort)) {
+            throw new BadRequestException("Invalid sort field");
+        }
+
+        Pageable pageable = PageUtils.getPageable(
+                dto,
+                List.of("name", "id")
         );
-
         Page<Category> categories;
 
         if (categoryId != null) {
@@ -112,22 +124,29 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void updateCategory(UUID categoryId, UpdateCategoryRequest request) {
 
+
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new BadRequestException("Category name cannot be empty");
+        }
+
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Category not found"));
 
         Category parent = category.getParentCategory();
 
-        if (categoryRepository
-                .findByNameAndParentCategory(request.getName(), parent)
-                .isPresent()) {
+        Optional<Category> existing =
+                categoryRepository.findByNameAndParentCategory(request.getName(), parent);
+
+
+        if (existing.isPresent() && !existing.get().getId().equals(categoryId)) {
 
             throw new BadRequestException(
                     "Category already exists under this parent"
             );
         }
 
-        category.setName(request.getName());
+        category.setName(request.getName().trim());
 
         categoryRepository.save(category);
     }
@@ -154,17 +173,23 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public Page<CategoryMetadataField> getMetadataFields(PageRequestDto dto) {
 
-        Sort.Direction direction =
-                dto.getOrder().equalsIgnoreCase("desc")
-                        ? Sort.Direction.DESC
-                        : Sort.Direction.ASC;
+        String sort = (dto.getSort() == null || dto.getSort().isBlank()) ? "name" : dto.getSort();
+        String order = (dto.getOrder() == null || dto.getOrder().isBlank()) ? "asc" : dto.getOrder();
 
-        Pageable pageable = PageRequest.of(
-                dto.getOffset(),
-                dto.getMax(),
-                Sort.by(direction, dto.getSort())
+        int max = (dto.getMax() == null || dto.getMax() <= 0) ? 10 : dto.getMax();
+        int offset = (dto.getOffset() == null || dto.getOffset() < 0) ? 0 : dto.getOffset();
+
+
+        List<String> allowedSortFields = List.of("name", "id");
+
+        if (!allowedSortFields.contains(sort)) {
+            throw new BadRequestException("Invalid sort field");
+        }
+
+        Pageable pageable = PageUtils.getPageable(
+                dto,
+                List.of("name", "id")
         );
-
         if (dto.getQuery() != null && !dto.getQuery().isBlank()) {
 
             return fieldRepository.findByNameContainingIgnoreCase(
@@ -226,12 +251,21 @@ public class CategoryServiceImpl implements CategoryService {
         // 6️⃣ Create new entry
         String values = String.join(",", uniqueValues);
 
+        CategoryMetadataFieldValuesId id =
+                new CategoryMetadataFieldValuesId(
+                        category.getId(),
+                        field.getId()
+                );
+
         CategoryMetadataFieldValues entity =
                 CategoryMetadataFieldValues.builder()
+                        .id(id)
                         .category(category)
                         .field(field)
                         .metadataValues(values)
                         .build();
+
+        valuesRepository.save(entity);
 
         valuesRepository.save(entity);
     }
