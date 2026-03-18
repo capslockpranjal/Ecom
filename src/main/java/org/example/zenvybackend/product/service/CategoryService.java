@@ -27,7 +27,7 @@ public interface CategoryService {
 
     Page<CategoryMetadataField> getMetadataFields(PageRequestDto dto);
 
-    void addMetadataValues(UUID categoryId, AddMetadataValueRequest request);
+    void addMetadataValues(UUID categoryId, List<AddMetadataValueRequest> requests);
 
 
 }

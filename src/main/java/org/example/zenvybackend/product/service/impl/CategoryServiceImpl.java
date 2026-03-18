@@ -202,72 +202,69 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void addMetadataValues(UUID categoryId, AddMetadataValueRequest request) {
+    public void addMetadataValues(UUID categoryId, List<AddMetadataValueRequest> requests) {
 
-        // 1️⃣ Validate category
+        // 1️⃣ Validate category (once)
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Category not found"));
 
-        // 2️⃣ Validate field
-        CategoryMetadataField field = fieldRepository.findById(request.getFieldId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Metadata field not found"));
+        for (AddMetadataValueRequest request : requests) {
 
-        // 3️⃣ Validate input values
-        if (request.getValues() == null || request.getValues().isEmpty()) {
-            throw new BadRequestException("At least one value must be provided");
+            // 2️⃣ Validate field
+            CategoryMetadataField field = fieldRepository.findById(request.getFieldId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Metadata field not found"));
+
+            // 3️⃣ Validate values
+            if (request.getValues() == null || request.getValues().isEmpty()) {
+                throw new BadRequestException("At least one value must be provided");
+            }
+
+            // 4️⃣ Remove duplicates
+            Set<String> uniqueValues = new HashSet<>(request.getValues());
+
+            if (uniqueValues.size() != request.getValues().size()) {
+                throw new BadRequestException("Duplicate values are not allowed");
+            }
+
+            // 5️⃣ Check existing
+            Optional<CategoryMetadataFieldValues> existing =
+                    valuesRepository.findByCategoryAndField(category, field);
+
+            if (existing.isPresent()) {
+
+                CategoryMetadataFieldValues entity = existing.get();
+
+                Set<String> oldValues =
+                        new HashSet<>(Arrays.asList(entity.getMetadataValues().split(",")));
+
+                oldValues.addAll(uniqueValues);
+
+                entity.setMetadataValues(String.join(",", oldValues));
+
+                valuesRepository.save(entity);
+
+            } else {
+
+                // 6️⃣ Create new
+                CategoryMetadataFieldValuesId id =
+                        new CategoryMetadataFieldValuesId(
+                                category.getId(),
+                                field.getId()
+                        );
+
+                CategoryMetadataFieldValues entity =
+                        CategoryMetadataFieldValues.builder()
+                                .id(id)
+                                .category(category)
+                                .field(field)
+                                .metadataValues(String.join(",", uniqueValues))
+                                .build();
+
+                valuesRepository.save(entity);
+            }
         }
-
-        // 4️⃣ Remove duplicates from request
-        Set<String> uniqueValues = new HashSet<>(request.getValues());
-
-        if (uniqueValues.size() != request.getValues().size()) {
-            throw new BadRequestException("Duplicate values are not allowed");
-        }
-
-        // 5️⃣ Check if metadata already exists for this category + field
-        Optional<CategoryMetadataFieldValues> existing =
-                valuesRepository.findByCategoryAndField(category, field);
-
-        if (existing.isPresent()) {
-
-            // 👉 Merge values instead of throwing error (better approach)
-
-            CategoryMetadataFieldValues entity = existing.get();
-
-            Set<String> oldValues =
-                    new HashSet<>(Arrays.asList(entity.getMetadataValues().split(",")));
-
-            oldValues.addAll(uniqueValues);
-
-            entity.setMetadataValues(String.join(",", oldValues));
-
-            valuesRepository.save(entity);
-
-            return;
-        }
-
-        // 6️⃣ Create new entry
-        String values = String.join(",", uniqueValues);
-
-        CategoryMetadataFieldValuesId id =
-                new CategoryMetadataFieldValuesId(
-                        category.getId(),
-                        field.getId()
-                );
-
-        CategoryMetadataFieldValues entity =
-                CategoryMetadataFieldValues.builder()
-                        .id(id)
-                        .category(category)
-                        .field(field)
-                        .metadataValues(values)
-                        .build();
-
-        valuesRepository.save(entity);
-
-        valuesRepository.save(entity);
     }
 
     private CategoryTreeResponse buildCategoryTree(Category category) {

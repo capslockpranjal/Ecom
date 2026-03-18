@@ -8,6 +8,7 @@ import org.example.zenvybackend.product.service.CategoryService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -103,9 +104,9 @@ public class CategoryController {
     @PostMapping("/{categoryId}/metadata")
     public ApiResponse<Void> addMetadataValues(
             @PathVariable UUID categoryId,
-           @Valid @RequestBody AddMetadataValueRequest request) {
+            @RequestBody List<@Valid AddMetadataValueRequest> requests) {
 
-        categoryService.addMetadataValues(categoryId, request);
+        categoryService.addMetadataValues(categoryId, requests);
 
         return ApiResponse.success("Metadata values added", null);
     }
