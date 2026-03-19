@@ -1,7 +1,9 @@
 package org.example.zenvybackend.admin.service;
 
 import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
+import org.example.zenvybackend.admin.dto.AdminProductResponse;
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
+import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.common.response.PagedResponse;
 
 import java.util.List;
@@ -29,5 +31,11 @@ public interface AdminService {
     void activateSeller(UUID userId);
 
     void deactivateSeller(UUID userId);
+
+    Object getProducts(UUID productId, UUID sellerId, UUID categoryId, PageRequestDto dto);
+
+    void activateProduct(UUID productId);
+
+    void deactivateProduct(UUID productId);
 
 }

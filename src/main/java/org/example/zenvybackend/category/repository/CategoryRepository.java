@@ -30,4 +30,6 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     // 🔹 Get all active categories
     Page<Category> findByIsDeletedFalse(Pageable pageable);
+
+    boolean existsByParentCategoryAndIsDeletedFalse(Category parent);
 }

@@ -1,8 +1,10 @@
 package org.example.zenvybackend.category.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
+import org.example.zenvybackend.common.exception.UnauthorizedException;
 import org.example.zenvybackend.common.util.PageUtils;
 import org.example.zenvybackend.category.dto.request.*;
 import org.example.zenvybackend.category.dto.response.*;
@@ -11,10 +13,14 @@ import org.example.zenvybackend.category.repository.*;
 import org.example.zenvybackend.category.service.CategoryService;
 import org.example.zenvybackend.product.repository.ProductRepository;
 import org.example.zenvybackend.product.repository.ProductVariationRepository;
+import org.example.zenvybackend.security.util.SecurityUtil;
+import org.example.zenvybackend.user.entity.Customer;
+import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +31,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMetadataFieldRepository fieldRepository;
     private final CategoryMetadataFieldValuesRepository valuesRepository;
     private final ProductVariationRepository productVariationRepository;
+    private final CustomerRepository customerRepository;
 
     // ================= CREATE CATEGORY =================
     @Override
@@ -281,6 +288,7 @@ public class CategoryServiceImpl implements CategoryService {
     // ================= CUSTOMER CATEGORY =================
     @Override
     public List<CustomerCategoryResponse> getCustomerCategories(UUID categoryId) {
+        getCurrentActiveCustomer();
 
         List<Category> categories;
 
@@ -354,6 +362,7 @@ public class CategoryServiceImpl implements CategoryService {
     // ================= FILTERING =================
     @Override
     public FilteringResponse getFilteringData(UUID categoryId) {
+        getCurrentActiveCustomer();
 
         if (categoryId == null) {
             throw new BadRequestException("CategoryId is required");
@@ -362,13 +371,78 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
+        // ✅ 1. Get ALL subcategories (including parent)
         List<Category> allCategories = getAllSubCategories(category);
 
-        // 🔹 Metadata (only category level)
-        List<CategoryMetadataFieldValues> metadata =
+        // ✅ 2. CATEGORY METADATA (allowed fields)
+        List<CategoryMetadataFieldValues> categoryMetadata =
                 valuesRepository.findByCategoryWithField(category);
 
-        // 🔹 Brands (ALL levels)
+        // Map: fieldName -> allowed values
+        Map<String, Set<String>> allowedMap = new HashMap<>();
+
+        for (CategoryMetadataFieldValues v : categoryMetadata) {
+
+            Set<String> values = Arrays.stream(v.getMetadataValues().split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
+
+            allowedMap.put(v.getField().getName(), values);
+        }
+
+        // ✅ 3. ACTUAL METADATA (from variations)
+        Map<String, Set<String>> actualMap = new HashMap<>();
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        for (Category cat : allCategories) {
+
+            List<String> metadataJsonList =
+                    productVariationRepository.findMetadataByCategory(cat.getId());
+
+            for (String json : metadataJsonList) {
+
+                try {
+                    Map<String, String> map = mapper.readValue(json, Map.class);
+
+                    for (Map.Entry<String, String> entry : map.entrySet()) {
+
+                        actualMap
+                                .computeIfAbsent(entry.getKey(), k -> new HashSet<>())
+                                .add(entry.getValue());
+                    }
+
+                } catch (Exception e) {
+                    throw new RuntimeException("Error parsing metadata");
+                }
+            }
+        }
+
+        // ✅ 4. INTERSECTION (allowed ∩ actual)
+        List<MetadataFieldResponse> metadataFilters = categoryMetadata.stream()
+                .map(v -> {
+
+                    String fieldName = v.getField().getName();
+                    UUID fieldId = v.getField().getId();
+
+                    Set<String> allowed = allowedMap.getOrDefault(fieldName, new HashSet<>());
+                    Set<String> actual = actualMap.getOrDefault(fieldName, new HashSet<>());
+
+                    // intersection
+                    List<String> finalValues = actual.stream()
+                            .filter(allowed::contains)
+                            .toList();
+
+                    return MetadataFieldResponse.builder()
+                            .fieldId(fieldId)
+                            .name(fieldName)
+                            .values(finalValues)
+                            .build();
+                })
+                .toList();
+
+        // ✅ 5. BRANDS (ALL categories)
         List<String> brands = new ArrayList<>();
 
         for (Category cat : allCategories) {
@@ -377,38 +451,34 @@ public class CategoryServiceImpl implements CategoryService {
 
         brands = brands.stream().distinct().toList();
 
-        // 🔹 Price (ALL levels)
-        Double min = Double.MAX_VALUE;
-        Double max = Double.MIN_VALUE;
+        // ✅ 6. PRICE RANGE
+        Double min = null;
+        Double max = null;
 
         for (Category cat : allCategories) {
 
             Double minVal = productVariationRepository.findMinPriceByCategory(cat);
             Double maxVal = productVariationRepository.findMaxPriceByCategory(cat);
 
-            if (minVal != null) min = Math.min(min, minVal);
-            if (maxVal != null) max = Math.max(max, maxVal);
+            if (minVal != null) {
+                min = (min == null) ? minVal : Math.min(min, minVal);
+            }
+
+            if (maxVal != null) {
+                max = (max == null) ? maxVal : Math.max(max, maxVal);
+            }
         }
 
-        if (min == Double.MAX_VALUE) min = 0.0;
-        if (max == Double.MIN_VALUE) max = 0.0;
+        if (min == null) min = 0.0;
+        if (max == null) max = 0.0;
 
         return FilteringResponse.builder()
-                .metadata(metadata.stream().map(v ->
-                        MetadataFieldResponse.builder()
-                                .fieldId(v.getField().getId())
-                                .name(v.getField().getName())
-                                .values(new ArrayList<>(new HashSet<>(
-                                        Arrays.asList(v.getMetadataValues().split(","))
-                                )))
-                                .build()
-                ).toList())
+                .metadata(metadataFilters)
                 .brands(brands)
                 .minPrice(min)
                 .maxPrice(max)
                 .build();
     }
-
     private List<Category> getAllSubCategories(Category category) {
 
         List<Category> result = new ArrayList<>();
@@ -422,5 +492,18 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         return result;
+    }
+
+    private Customer getCurrentActiveCustomer() {
+        UUID currentUserId = SecurityUtil.getCurrentUserId();
+
+        Customer customer = customerRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+
+        if (customer.getUser() == null || !Boolean.TRUE.equals(customer.getUser().getIsActive())) {
+            throw new UnauthorizedException("Customer account is not activated");
+        }
+
+        return customer;
     }
 }

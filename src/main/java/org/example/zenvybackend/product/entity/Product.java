@@ -5,6 +5,8 @@ import lombok.*;
 import org.example.zenvybackend.category.entity.Category;
 import org.example.zenvybackend.common.entity.BaseEntity;
 import org.example.zenvybackend.user.entity.Seller;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 import java.util.UUID;
 
@@ -17,6 +19,8 @@ import java.util.UUID;
                 )
         }
 )
+@SQLDelete(sql = "UPDATE product SET is_deleted = true WHERE id = ?")
+@Where(clause = "is_deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor

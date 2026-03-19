@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.common.response.ErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,6 +16,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @RestControllerAdvice
@@ -33,6 +35,40 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("BAD_REQUEST")
                 .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(
+            UnauthorizedException ex,
+            HttpServletRequest request
+    ) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error("FORBIDDEN")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
+    ) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("BAD_REQUEST")
+                .message("Request violates a data constraint")
                 .path(request.getRequestURI())
                 .build();
 
@@ -105,18 +141,18 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ){
 
-        String errorMessage = ex.getBindingResult()
+        List<String> details = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .reduce((msg1, msg2) -> msg1 + ", " + msg2)
-                .orElse("Validation error");
+                .toList();
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("VALIDATION_ERROR")
-                .message(errorMessage)
+                .message("Validation failed")
+                .details(details)
                 .path(request.getRequestURI())
                 .build();
 
@@ -201,17 +237,17 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ){
 
-        String message = ex.getConstraintViolations()
+        List<String> details = ex.getConstraintViolations()
                 .stream()
                 .map(v -> v.getMessage())
-                .reduce((msg1, msg2) -> msg1 + ", " + msg2)
-                .orElse("Invalid request");
+                .toList();
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("VALIDATION_ERROR")
-                .message(message)
+                .message("Validation failed")
+                .details(details)
                 .path(request.getRequestURI())
                 .build();
 
@@ -224,20 +260,22 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        String errorMessage = ex.getAllErrors()
+        List<String> details = ex.getAllErrors()
                 .stream()
                 .map(error -> error.getDefaultMessage())
-                .reduce((msg1, msg2) -> msg1 + ", " + msg2)
-                .orElse("Validation error");
+                .toList();
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("VALIDATION_ERROR")
-                .message(errorMessage)
+                .message("Validation failed")
+                .details(details)
                 .path(request.getRequestURI())
                 .build();
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
+
+
 }
