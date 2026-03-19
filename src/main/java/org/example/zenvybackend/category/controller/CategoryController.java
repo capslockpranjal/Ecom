@@ -1,10 +1,12 @@
-package org.example.zenvybackend.product.controller;
+package org.example.zenvybackend.category.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.response.ApiResponse;
-import org.example.zenvybackend.product.dto.request.*;
-import org.example.zenvybackend.product.service.CategoryService;
+import org.example.zenvybackend.category.dto.request.*;
+import org.example.zenvybackend.category.service.CategoryService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,20 +37,14 @@ public class CategoryController {
     public ApiResponse<?> getCategories(
 
             @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) Integer max,
-            @RequestParam(required = false) Integer offset,
+           @Min(1) @RequestParam(required = false) Integer max,
+           @Min(0) @RequestParam(required = false) Integer offset,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String order,
             @RequestParam(required = false) String query
     ) {
 
-        PageRequestDto dto = new PageRequestDto();
-
-        dto.setMax(max);
-        dto.setOffset(offset);
-        dto.setSort(sort);
-        dto.setOrder(order);
-        dto.setQuery(query);
+        PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
                 "Category list",
@@ -73,20 +69,14 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<?> getMetadataFields(
 
-            @RequestParam(required = false) Integer max,
-            @RequestParam(required = false) Integer offset,
+           @Min(1) @RequestParam(required = false) Integer max,
+           @Min(0) @RequestParam(required = false) Integer offset,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String order,
             @RequestParam(required = false) String query
     ) {
 
-        PageRequestDto dto = new PageRequestDto();
-
-        dto.setMax(max);
-        dto.setOffset(offset);
-        dto.setSort(sort);
-        dto.setOrder(order);
-        dto.setQuery(query);
+        PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
                 "Metadata fields",
@@ -109,7 +99,7 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> addMetadataValues(
             @PathVariable UUID categoryId,
-            @RequestBody List<@Valid AddMetadataValueRequest> requests) {
+            @RequestBody @NotEmpty List<@Valid AddMetadataValueRequest> requests) {
 
         categoryService.addMetadataValues(categoryId, requests);
 
@@ -120,19 +110,14 @@ public class CategoryController {
     @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<?> getSellerCategories(
             @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) Integer max,
-            @RequestParam(required = false) Integer offset,
+            @Min(1) @RequestParam(required = false) Integer max,
+            @Min(0) @RequestParam(required = false) Integer offset,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String order,
             @RequestParam(required = false) String query
     ) {
 
-        PageRequestDto dto = new PageRequestDto();
-        dto.setMax(max);
-        dto.setOffset(offset);
-        dto.setSort(sort);
-        dto.setOrder(order);
-        dto.setQuery(query);
+        PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
                 "Seller category list",
@@ -162,5 +147,18 @@ public class CategoryController {
                 "Filtering data",
                 categoryService.getFilteringData(categoryId)
         );
+    }
+
+    private PageRequestDto buildPageRequest(
+            Integer max, Integer offset,
+            String sort, String order, String query
+    ) {
+        PageRequestDto dto = new PageRequestDto();
+        dto.setMax(max);
+        dto.setOffset(offset);
+        dto.setSort(sort);
+        dto.setOrder(order);
+        dto.setQuery(query);
+        return dto;
     }
 }

@@ -1,7 +1,7 @@
 package org.example.zenvybackend.product.repository;
 
 import org.example.zenvybackend.product.entity.ProductVariation;
-import org.example.zenvybackend.product.entity.Category;
+import org.example.zenvybackend.category.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

@@ -1,4 +1,4 @@
-package org.example.zenvybackend.product.dto.response;
+package org.example.zenvybackend.category.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

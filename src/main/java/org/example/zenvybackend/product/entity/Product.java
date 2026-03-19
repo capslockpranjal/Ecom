@@ -2,13 +2,21 @@ package org.example.zenvybackend.product.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.zenvybackend.category.entity.Category;
 import org.example.zenvybackend.common.entity.BaseEntity;
 import org.example.zenvybackend.user.entity.Seller;
 
 import java.util.UUID;
 
 @Entity
-@Table(name = "product")
+@Table(
+        name = "product",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {"name", "brand", "category_id", "seller_user_id"}
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,17 +43,15 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @Column(name = "is_cancellable")
+    @Column(name = "is_cancellable",nullable = false)
     private Boolean isCancellable;
 
-    @Column(name = "is_returnable")
+    @Column(name = "is_returnable",nullable = false)
     private Boolean isReturnable;
 
+    @Column(nullable = false)
     private String brand;
 
-    @Column(name = "primary_image_name")
-    private String primaryImageName;
-
-    @Column(name = "is_active")
-    private Boolean isActive;
+    @Column(name = "is_active",nullable = false)
+    private Boolean isActive= false;
 }

@@ -1,6 +1,6 @@
-package org.example.zenvybackend.product.repository;
+package org.example.zenvybackend.category.repository;
 
-import org.example.zenvybackend.product.entity.Category;
+import org.example.zenvybackend.category.entity.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

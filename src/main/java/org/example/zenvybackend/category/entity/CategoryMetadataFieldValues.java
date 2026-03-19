@@ -1,4 +1,4 @@
-package org.example.zenvybackend.product.entity;
+package org.example.zenvybackend.category.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

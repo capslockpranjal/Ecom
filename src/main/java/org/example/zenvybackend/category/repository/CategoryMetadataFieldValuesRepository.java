@@ -1,9 +1,9 @@
-package org.example.zenvybackend.product.repository;
+package org.example.zenvybackend.category.repository;
 
-import org.example.zenvybackend.product.entity.Category;
-import org.example.zenvybackend.product.entity.CategoryMetadataField;
-import org.example.zenvybackend.product.entity.CategoryMetadataFieldValues;
-import org.example.zenvybackend.product.entity.CategoryMetadataFieldValuesId;
+import org.example.zenvybackend.category.entity.Category;
+import org.example.zenvybackend.category.entity.CategoryMetadataField;
+import org.example.zenvybackend.category.entity.CategoryMetadataFieldValues;
+import org.example.zenvybackend.category.entity.CategoryMetadataFieldValuesId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

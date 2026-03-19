@@ -1,7 +1,7 @@
 package org.example.zenvybackend.common.util;
 
 import org.example.zenvybackend.common.exception.BadRequestException;
-import org.example.zenvybackend.product.dto.request.PageRequestDto;
+import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.springframework.data.domain.*;
 
 import java.util.List;
@@ -27,4 +27,5 @@ public class PageUtils {
 
         return PageRequest.of(offset, max, Sort.by(direction, sort));
     }
+
 }

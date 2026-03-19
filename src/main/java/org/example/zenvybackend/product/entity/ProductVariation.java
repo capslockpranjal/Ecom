@@ -22,14 +22,17 @@ public class ProductVariation extends BaseEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Column(nullable = false)
     private Integer quantityAvailable;
 
+    @Column(nullable = false)
     private Double price;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String metadata;
 
-    private String primaryCategoryName;
+    @Column(nullable = false)
+    private String primaryImageName;
 
     private Boolean isActive = true;
 }

@@ -1,14 +1,16 @@
-package org.example.zenvybackend.product.service.impl;
+package org.example.zenvybackend.category.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.util.PageUtils;
-import org.example.zenvybackend.product.dto.request.*;
-import org.example.zenvybackend.product.dto.response.*;
-import org.example.zenvybackend.product.entity.*;
-import org.example.zenvybackend.product.repository.*;
-import org.example.zenvybackend.product.service.CategoryService;
+import org.example.zenvybackend.category.dto.request.*;
+import org.example.zenvybackend.category.dto.response.*;
+import org.example.zenvybackend.category.entity.*;
+import org.example.zenvybackend.category.repository.*;
+import org.example.zenvybackend.category.service.CategoryService;
+import org.example.zenvybackend.product.repository.ProductRepository;
+import org.example.zenvybackend.product.repository.ProductVariationRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 

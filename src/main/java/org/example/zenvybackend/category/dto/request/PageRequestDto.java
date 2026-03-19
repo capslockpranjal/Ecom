@@ -1,4 +1,4 @@
-package org.example.zenvybackend.product.dto.request;
+package org.example.zenvybackend.category.dto.request;
 
 import lombok.Data;
 
