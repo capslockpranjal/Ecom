@@ -2,6 +2,7 @@ package org.example.zenvybackend.product.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.zenvybackend.common.entity.BaseEntity;
 import org.example.zenvybackend.user.entity.Seller;
 
 import java.util.UUID;
@@ -13,7 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Product {
+public class Product extends BaseEntity {
 
     @Id
     @GeneratedValue
@@ -25,13 +26,11 @@ public class Product {
     private String description;
 
     /* SELLER MAPPING */
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_user_id", nullable = false)
     private Seller seller;
 
     /* CATEGORY MAPPING */
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -49,7 +48,4 @@ public class Product {
 
     @Column(name = "is_active")
     private Boolean isActive;
-
-    @Column(name = "is_deleted")
-    private Boolean isDeleted;
 }

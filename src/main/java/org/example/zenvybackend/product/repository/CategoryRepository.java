@@ -11,11 +11,23 @@ import java.util.UUID;
 
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
-    Optional<Category> findByNameAndParentCategory(String name, Category parent);
+    // 🔹 Unique check (ignore deleted)
+    Optional<Category> findByNameIgnoreCaseAndParentCategoryAndIsDeletedFalse(
+            String name,
+            Category parent
+    );
 
-    Page<Category> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    // 🔹 Search (ignore deleted)
+    Page<Category> findByNameContainingIgnoreCaseAndIsDeletedFalse(String name, Pageable pageable);
 
-    List<Category> findByParentCategory(Category parent);
+    // 🔹 Get children (ignore deleted)
+    List<Category> findByParentCategoryAndIsDeletedFalse(Category parent);
 
-    Page<Category> findByParentCategory(Category parent, Pageable pageable);
+    Page<Category> findByParentCategoryAndIsDeletedFalse(Category parent, Pageable pageable);
+
+    // 🔹 Root categories
+    List<Category> findByParentCategoryIsNullAndIsDeletedFalse();
+
+    // 🔹 Get all active categories
+    Page<Category> findByIsDeletedFalse(Pageable pageable);
 }

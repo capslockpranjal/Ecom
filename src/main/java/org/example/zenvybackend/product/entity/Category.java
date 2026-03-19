@@ -2,6 +2,7 @@ package org.example.zenvybackend.product.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.zenvybackend.common.entity.BaseEntity;
 
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Category {
+public class Category extends BaseEntity {
 
     @Id
     @GeneratedValue
@@ -26,5 +27,4 @@ public class Category {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Category parentCategory;
-
 }

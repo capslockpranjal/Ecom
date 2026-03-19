@@ -6,6 +6,8 @@ import org.example.zenvybackend.product.dto.request.PageRequestDto;
 import org.example.zenvybackend.product.dto.request.UpdateCategoryRequest;
 import org.example.zenvybackend.product.dto.response.CategoryResponse;
 import org.example.zenvybackend.product.dto.response.CategoryTreeResponse;
+import org.example.zenvybackend.product.dto.response.CustomerCategoryResponse;
+import org.example.zenvybackend.product.dto.response.FilteringResponse;
 import org.example.zenvybackend.product.entity.CategoryMetadataField;
 import org.springframework.data.domain.Page;
 
@@ -30,4 +32,7 @@ public interface CategoryService {
     void addMetadataValues(UUID categoryId, List<AddMetadataValueRequest> requests);
 
 
+    List<CustomerCategoryResponse> getCustomerCategories(UUID categoryId);
+
+    FilteringResponse getFilteringData(UUID categoryId);
 }

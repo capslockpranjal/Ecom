@@ -11,10 +11,13 @@ import java.util.UUID;
 public interface CategoryMetadataFieldRepository
         extends JpaRepository<CategoryMetadataField, UUID> {
 
-    Optional<CategoryMetadataField> findByNameIgnoreCase(String name);
+    // 🔹 Unique check (ignore deleted)
+    Optional<CategoryMetadataField> findByNameIgnoreCaseAndIsDeletedFalse(String name);
 
-    Page<CategoryMetadataField> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    // 🔹 Search (ignore deleted)
+    Page<CategoryMetadataField> findByNameContainingIgnoreCaseAndIsDeletedFalse(String name, Pageable pageable);
 
+    // 🔹 Get all active
+    Page<CategoryMetadataField> findByIsDeletedFalse(Pageable pageable);
 }
-
 
