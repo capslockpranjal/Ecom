@@ -9,9 +9,9 @@ public class PageRequestDto {
 
     private Integer offset = 0;
 
-    private String sort = "name";
+    private String sort;
 
-    private String order = "asc";
+    private String order;
 
     private String query;
 

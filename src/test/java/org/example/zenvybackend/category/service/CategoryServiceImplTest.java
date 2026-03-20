@@ -160,7 +160,6 @@ class CategoryServiceImplTest {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(category)).thenReturn(List.of());
         when(valuesRepository.findByCategoryWithField(category)).thenReturn(List.of(values));
-        when(productVariationRepository.findMetadataByCategory(categoryId)).thenReturn(List.of("{\"size\":\"M\"}"));
         when(productRepository.findDistinctBrandsByCategory(category)).thenReturn(List.of("Nike"));
         when(productVariationRepository.findMinPriceByCategory(category)).thenReturn(50.0);
         when(productVariationRepository.findMaxPriceByCategory(category)).thenReturn(120.0);
@@ -172,7 +171,7 @@ class CategoryServiceImplTest {
         assertEquals(120.0, response.getMaxPrice());
         assertEquals(1, response.getMetadata().size());
         assertEquals("size", response.getMetadata().get(0).getName());
-        assertEquals(List.of("M"), response.getMetadata().get(0).getValues());
+        assertEquals(List.of("S", "M", "L"), response.getMetadata().get(0).getValues());
     }
 
     @Test

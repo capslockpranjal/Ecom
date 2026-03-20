@@ -10,7 +10,10 @@ public class PageUtils {
 
     public static Pageable getPageable(PageRequestDto dto, List<String> allowedSortFields) {
 
-        String sort = (dto.getSort() == null || dto.getSort().isBlank()) ? "name" : dto.getSort();
+        String defaultSort = allowedSortFields.contains("name")
+                ? "name"
+                : allowedSortFields.get(0);
+        String sort = (dto.getSort() == null || dto.getSort().isBlank()) ? defaultSort : dto.getSort();
         String order = (dto.getOrder() == null || dto.getOrder().isBlank()) ? "asc" : dto.getOrder();
 
         int max = (dto.getMax() == null || dto.getMax() <= 0) ? 10 : dto.getMax();

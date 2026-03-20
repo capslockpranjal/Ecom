@@ -386,40 +386,12 @@ public class CategoryServiceImpl implements CategoryService {
             Set<String> values = Arrays.stream(v.getMetadataValues().split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
             allowedMap.put(v.getField().getName(), values);
         }
 
-        // ✅ 3. ACTUAL METADATA (from variations)
-        Map<String, Set<String>> actualMap = new HashMap<>();
-
-        ObjectMapper mapper = new ObjectMapper();
-
-        for (Category cat : allCategories) {
-
-            List<String> metadataJsonList =
-                    productVariationRepository.findMetadataByCategory(cat.getId());
-
-            for (String json : metadataJsonList) {
-
-                try {
-                    Map<String, String> map = mapper.readValue(json, Map.class);
-
-                    for (Map.Entry<String, String> entry : map.entrySet()) {
-
-                        actualMap
-                                .computeIfAbsent(entry.getKey(), k -> new HashSet<>())
-                                .add(entry.getValue());
-                    }
-
-                } catch (Exception e) {
-                    throw new RuntimeException("Error parsing metadata");
-                }
-            }
-        }
-
-        // ✅ 4. INTERSECTION (allowed ∩ actual)
+        // ✅ 3. FULL CATEGORY METADATA VALUES
         List<MetadataFieldResponse> metadataFilters = categoryMetadata.stream()
                 .map(v -> {
 
@@ -427,12 +399,7 @@ public class CategoryServiceImpl implements CategoryService {
                     UUID fieldId = v.getField().getId();
 
                     Set<String> allowed = allowedMap.getOrDefault(fieldName, new HashSet<>());
-                    Set<String> actual = actualMap.getOrDefault(fieldName, new HashSet<>());
-
-                    // intersection
-                    List<String> finalValues = actual.stream()
-                            .filter(allowed::contains)
-                            .toList();
+                    List<String> finalValues = allowed.stream().toList();
 
                     return MetadataFieldResponse.builder()
                             .fieldId(fieldId)
@@ -442,7 +409,7 @@ public class CategoryServiceImpl implements CategoryService {
                 })
                 .toList();
 
-        // ✅ 5. BRANDS (ALL categories)
+        // ✅ 4. BRANDS (ALL categories)
         List<String> brands = new ArrayList<>();
 
         for (Category cat : allCategories) {
@@ -451,7 +418,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         brands = brands.stream().distinct().toList();
 
-        // ✅ 6. PRICE RANGE
+        // ✅ 5. PRICE RANGE
         Double min = null;
         Double max = null;
 

@@ -3,6 +3,7 @@ package org.example.zenvybackend.product.dto.request;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class UpdateProductVariationRequest {
@@ -11,7 +12,7 @@ public class UpdateProductVariationRequest {
 
     private Double price;
 
-    private String metadata;
+    private Map<String, String> metadata;
 
     private String primaryImageName;
 

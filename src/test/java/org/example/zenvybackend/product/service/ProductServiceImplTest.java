@@ -237,7 +237,10 @@ class ProductServiceImplTest {
         request.setQuantityAvailable(5);
         request.setPrice(1299.0);
         request.setPrimaryImageName("shoe.JPG");
-        request.setMetadata("{\"size\":\"M\",\"color\":\"Blue\"}");
+        LinkedHashMap<String, String> requestMetadata = new LinkedHashMap<>();
+        requestMetadata.put("size", "M");
+        requestMetadata.put("color", "Blue");
+        request.setMetadata(requestMetadata);
         request.setSecondaryImages(List.of("  side.png ", "top.jpeg"));
 
         Category category = new Category();
@@ -312,7 +315,7 @@ class ProductServiceImplTest {
         request.setQuantityAvailable(0);
         request.setPrice(0.0);
         request.setPrimaryImageName("image.png");
-        request.setMetadata("{}");
+        request.setMetadata(new LinkedHashMap<>());
 
         Category category = new Category();
         Product product = new Product();
@@ -340,7 +343,10 @@ class ProductServiceImplTest {
         request.setQuantityAvailable(5);
         request.setPrice(10.0);
         request.setPrimaryImageName("image.png");
-        request.setMetadata("{\"color\":\"Blue\",\"size\":\"M\"}");
+        LinkedHashMap<String, String> requestMetadata = new LinkedHashMap<>();
+        requestMetadata.put("color", "Blue");
+        requestMetadata.put("size", "M");
+        request.setMetadata(requestMetadata);
 
         Category category = new Category();
         Product product = new Product();
@@ -407,7 +413,9 @@ class ProductServiceImplTest {
         request.setQuantityAvailable(5);
         request.setPrice(10.0);
         request.setPrimaryImageName("image.png");
-        request.setMetadata("{\"size\":\"M\"}");
+        LinkedHashMap<String, String> requestMetadata = new LinkedHashMap<>();
+        requestMetadata.put("size", "M");
+        request.setMetadata(requestMetadata);
 
         Category category = new Category();
         Product product = new Product();
@@ -751,7 +759,9 @@ class ProductServiceImplTest {
         UpdateProductVariationRequest request = new UpdateProductVariationRequest();
         request.setQuantityAvailable(9);
         request.setPrice(15.5);
-        request.setMetadata("{\"size\":\"L\"}");
+        LinkedHashMap<String, String> requestMetadata = new LinkedHashMap<>();
+        requestMetadata.put("size", "L");
+        request.setMetadata(requestMetadata);
         request.setPrimaryImageName(" hero.JPG ");
         request.setSecondaryImages(List.of("side.png"));
         request.setIsActive(false);
@@ -867,7 +877,9 @@ class ProductServiceImplTest {
                 .build();
 
         UpdateProductVariationRequest request = new UpdateProductVariationRequest();
-        request.setMetadata("{\"size\":\"L\"}");
+        LinkedHashMap<String, String> requestMetadata = new LinkedHashMap<>();
+        requestMetadata.put("size", "L");
+        request.setMetadata(requestMetadata);
 
         LinkedHashMap<String, String> metadata = new LinkedHashMap<>();
         metadata.put("size", "L");
@@ -951,6 +963,41 @@ class ProductServiceImplTest {
         when(productVariationMapper.toResponse(variation)).thenReturn(response);
 
         Object result = productService.getProductVariations(productId, null, dto);
+
+        Page<?> resultPage = (Page<?>) result;
+        assertEquals(1, resultPage.getTotalElements());
+        assertSame(response, resultPage.getContent().get(0));
+    }
+
+    @Test
+    void getProductVariations_defaultsToAllowedSortFieldWhenSortNotProvided() {
+        UUID productId = UUID.randomUUID();
+        Category category = new Category();
+        Product product = new Product();
+        product.setId(productId);
+        product.setSeller(seller);
+        product.setCategory(category);
+        product.setIsDeleted(false);
+
+        ProductVariation variation = new ProductVariation();
+        variation.setId(UUID.randomUUID());
+        variation.setProduct(product);
+        variation.setIsDeleted(false);
+        variation.setIsActive(true);
+
+        ProductVariationResponse response = ProductVariationResponse.builder()
+                .id(variation.getId())
+                .build();
+
+        Page<ProductVariation> page = new PageImpl<>(List.of(variation), PageRequest.of(0, 10), 1);
+
+        when(sellerRepository.findById(sellerId)).thenReturn(Optional.of(seller));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(eq(product), any()))
+                .thenReturn(page);
+        when(productVariationMapper.toResponse(variation)).thenReturn(response);
+
+        Object result = productService.getProductVariations(productId, null, new PageRequestDto());
 
         Page<?> resultPage = (Page<?>) result;
         assertEquals(1, resultPage.getTotalElements());

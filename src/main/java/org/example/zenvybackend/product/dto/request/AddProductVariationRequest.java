@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -26,8 +27,8 @@ public class AddProductVariationRequest {
     @NotBlank
     private String primaryImageName;
 
-    @NotBlank
-    private String metadata;
+    @NotNull
+    private Map<String, String> metadata;
 
     private List<String> secondaryImages;
 }
