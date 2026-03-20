@@ -28,7 +28,6 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /* -------------------- GENERATE TOKEN -------------------- */
 
     public String generateToken(String email, List<Role> roles) {
 
@@ -45,19 +44,19 @@ public class JwtUtil {
                 .compact();
     }
 
-    /* -------------------- EXTRACT EMAIL -------------------- */
+
 
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    /* -------------------- EXTRACT ROLES -------------------- */
+
 
     public List<String> extractRoles(String token) {
         return extractAllClaims(token).get("roles", List.class);
     }
 
-    /* -------------------- VALIDATE TOKEN -------------------- */
+
 
     public boolean validateToken(String token) {
 
@@ -67,7 +66,7 @@ public class JwtUtil {
                 && claims.getSubject() != null;
     }
 
-    /* -------------------- PARSE CLAIMS -------------------- */
+
 
     private Claims extractAllClaims(String token) {
         try {

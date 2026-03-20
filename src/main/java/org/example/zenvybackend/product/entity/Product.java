@@ -37,12 +37,12 @@ public class Product extends BaseEntity {
 
     private String description;
 
-    /* SELLER MAPPING */
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_user_id", nullable = false)
     private Seller seller;
 
-    /* CATEGORY MAPPING */
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;

@@ -17,7 +17,7 @@ public class ProductResponse {
     private Boolean isCancellable;
     private Boolean isReturnable;
 
-    // 🔥 Category details
+    //  Category details
     private UUID categoryId;
     private String categoryName;
 }

@@ -9,7 +9,7 @@ import org.example.zenvybackend.user.entity.User;
 
 public class  UserMapper {
 
-    public static CustomerProfileResponse toProfileResponse(Customer customer) {
+    public static CustomerProfileResponse toProfileResponse(Customer customer, String profileImage) {
 
         User user = customer.getUser();
         return CustomerProfileResponse.builder()
@@ -18,10 +18,11 @@ public class  UserMapper {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .contact(customer.getContact())
+                .profileImage(profileImage)
                 .build();
     }
 
-    public static SellerProfileResponse toSellerProfileResponse(Seller seller, Address address) {
+    public static SellerProfileResponse toSellerProfileResponse(Seller seller, Address address, String profileImage) {
 
         User user = seller.getUser();
 
@@ -33,6 +34,7 @@ public class  UserMapper {
                 .companyName(seller.getCompanyName())
                 .companyContact(seller.getCompanyContact())
                 .gst(seller.getGst())
+                .profileImage(profileImage)
                 .address(address != null ? AddressMapper.toResponse(address) : null)
                 .build();
     }

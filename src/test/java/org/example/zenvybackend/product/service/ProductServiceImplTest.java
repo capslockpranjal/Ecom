@@ -11,6 +11,7 @@ import org.example.zenvybackend.category.repository.CategoryRepository;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.exception.UnauthorizedException;
+import org.example.zenvybackend.common.storage.ImageStorageService;
 import org.example.zenvybackend.product.dto.request.AddProductRequest;
 import org.example.zenvybackend.product.dto.request.AddProductVariationRequest;
 import org.example.zenvybackend.product.dto.request.UpdateProductRequest;
@@ -97,6 +98,9 @@ class ProductServiceImplTest {
 
     @Mock
     private ObjectMapper objectMapper;
+
+    @Mock
+    private ImageStorageService imageStorageService;
 
     @InjectMocks
     private ProductServiceImpl productService;

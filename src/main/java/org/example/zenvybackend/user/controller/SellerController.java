@@ -10,7 +10,9 @@ import org.example.zenvybackend.user.dto.response.AddressResponse;
 import org.example.zenvybackend.user.dto.response.SellerProfileResponse;
 import org.example.zenvybackend.user.service.AddressService;
 import org.example.zenvybackend.user.service.UserService;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,7 +33,7 @@ public class SellerController {
         );
     }
 
-    @PatchMapping("/profile")
+    @PatchMapping(value = "/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<SellerProfileResponse> updateProfile(
             @Valid @RequestBody UpdateSellerProfileRequest request
     ) {
@@ -39,6 +41,18 @@ public class SellerController {
         return ApiResponse.success(
                 "Profile updated successfully",
                 userService.updateSellerProfile(request)
+        );
+    }
+
+    @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<SellerProfileResponse> updateProfileMultipart(
+            @Valid @RequestPart("data") UpdateSellerProfileRequest request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+    ) {
+
+        return ApiResponse.success(
+                "Profile updated successfully",
+                userService.updateSellerProfile(request, profileImage)
         );
     }
 
@@ -63,4 +77,3 @@ public class SellerController {
         );
     }
 }
-

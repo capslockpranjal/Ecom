@@ -9,7 +9,9 @@ import org.example.zenvybackend.product.dto.request.AddProductVariationRequest;
 import org.example.zenvybackend.product.dto.request.UpdateProductRequest;
 import org.example.zenvybackend.product.dto.request.UpdateProductVariationRequest;
 import org.example.zenvybackend.product.service.ProductService;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -27,10 +29,21 @@ public class ProductController {
         return ApiResponse.success("Product created", productService.addProduct(request));
     }
 
-    @PostMapping("/variation")
+    @PostMapping(value = "/variation", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<Void> addVariation(@Valid @RequestBody AddProductVariationRequest request) {
         productService.addVariation(request);
+        return ApiResponse.success("Variation added", null);
+    }
+
+    @PostMapping(value = "/variation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('SELLER')")
+    public ApiResponse<Void> addVariationMultipart(
+            @Valid @RequestPart("data") AddProductVariationRequest request,
+            @RequestPart("primaryImage") MultipartFile primaryImage,
+            @RequestPart(value = "secondaryImages", required = false) java.util.List<MultipartFile> secondaryImages
+    ) {
+        productService.addVariation(request, primaryImage, secondaryImages);
         return ApiResponse.success("Variation added", null);
     }
 
@@ -44,13 +57,25 @@ public class ProductController {
         return ApiResponse.success("Product updated successfully", null);
     }
 
-    @PutMapping("/variation/{variationId}")
+    @PutMapping(value = "/variation/{variationId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<Void> updateVariation(
             @PathVariable UUID variationId,
             @Valid @RequestBody UpdateProductVariationRequest request
     ) {
         productService.updateVariation(variationId, request);
+        return ApiResponse.success("Product variation updated successfully", null);
+    }
+
+    @PutMapping(value = "/variation/{variationId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('SELLER')")
+    public ApiResponse<Void> updateVariationMultipart(
+            @PathVariable UUID variationId,
+            @Valid @RequestPart("data") UpdateProductVariationRequest request,
+            @RequestPart(value = "primaryImage", required = false) MultipartFile primaryImage,
+            @RequestPart(value = "secondaryImages", required = false) java.util.List<MultipartFile> secondaryImages
+    ) {
+        productService.updateVariation(variationId, request, primaryImage, secondaryImages);
         return ApiResponse.success("Product variation updated successfully", null);
     }
 

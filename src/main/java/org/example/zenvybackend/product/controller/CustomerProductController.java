@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.product.dto.response.CustomerProductDetailResponse;
-import org.example.zenvybackend.product.dto.response.CustomerProductListItemResponse;
 import org.example.zenvybackend.product.service.ProductService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestParam;

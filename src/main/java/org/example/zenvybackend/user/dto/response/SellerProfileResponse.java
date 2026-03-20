@@ -16,8 +16,8 @@ public class SellerProfileResponse {
     private String companyName;
     private String companyContact;
     private String gst;
+    private String profileImage;
 
 
     private AddressResponse address;
 }
-

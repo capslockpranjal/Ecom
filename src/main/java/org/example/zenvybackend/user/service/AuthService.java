@@ -292,7 +292,7 @@ public void activateAccount(String token) {
 
     tokenRepository.delete(activationToken);
 
-    // async mail after successful activation (you already have EmailService)
+    // async mail after successful activation
     emailService.sendEmail(
             user.getEmail(),
             "Account Activated",

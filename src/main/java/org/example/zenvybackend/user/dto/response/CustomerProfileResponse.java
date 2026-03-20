@@ -14,4 +14,5 @@ public class CustomerProfileResponse {
     private String lastName;
     private String email;
     private String contact;
+    private String profileImage;
 }

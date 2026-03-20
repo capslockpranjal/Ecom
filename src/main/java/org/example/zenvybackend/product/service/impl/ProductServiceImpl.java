@@ -13,6 +13,7 @@ import org.example.zenvybackend.category.repository.CategoryRepository;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.exception.UnauthorizedException;
+import org.example.zenvybackend.common.storage.ImageStorageService;
 import org.example.zenvybackend.common.util.JsonUtil;
 import org.example.zenvybackend.common.util.PageUtils;
 import org.example.zenvybackend.product.dto.request.AddProductRequest;
@@ -40,6 +41,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -71,6 +73,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final ObjectMapper objectMapper;
+    private final ImageStorageService imageStorageService;
 
     @Override
     public UUID addProduct(AddProductRequest request) {
@@ -119,6 +122,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void addVariation(AddProductVariationRequest request) {
+        addVariation(request, null, null);
+    }
+
+    @Override
+    public void addVariation(AddProductVariationRequest request, MultipartFile primaryImageFile, List<MultipartFile> secondaryImageFiles) {
         Seller seller = getCurrentActiveSeller();
         Product product = getOwnedProduct(request.getProductId(), seller);
 
@@ -126,10 +134,7 @@ public class ProductServiceImpl implements ProductService {
             throw new BadRequestException("Product is not active");
         }
 
-        String primaryImage = request.getPrimaryImageName().trim();
-        if (!isSupportedImage(primaryImage)) {
-            throw new BadRequestException("Invalid primary image format");
-        }
+        String primaryImage = resolvePrimaryImageName(request.getPrimaryImageName(), primaryImageFile);
 
         String metadata;
         try {
@@ -156,7 +161,7 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        String secondaryImages = serializeSecondaryImages(request);
+        String secondaryImages = serializeSecondaryImages(request, secondaryImageFiles);
 
         ProductVariation variation = ProductVariation.builder()
                 .product(product)
@@ -169,7 +174,11 @@ public class ProductServiceImpl implements ProductService {
                 .build();
 
         try {
-            productVariationRepository.save(variation);
+            ProductVariation savedVariation = productVariationRepository.save(variation);
+            if (savedVariation == null) {
+                savedVariation = variation;
+            }
+            storeVariationImages(product, savedVariation, primaryImageFile, secondaryImageFiles, false);
         } catch (DataIntegrityViolationException ex) {
             throw new BadRequestException("Variation already exists");
         }
@@ -223,6 +232,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void updateVariation(UUID variationId, UpdateProductVariationRequest request) {
+        updateVariation(variationId, request, null, null);
+    }
+
+    @Override
+    public void updateVariation(UUID variationId, UpdateProductVariationRequest request, MultipartFile primaryImageFile, List<MultipartFile> secondaryImageFiles) {
         Seller seller = getCurrentActiveSeller();
         ProductVariation variation = getOwnedVariation(variationId, seller);
         Product product = variation.getProduct();
@@ -237,7 +251,9 @@ public class ProductServiceImpl implements ProductService {
                         || request.getMetadata() != null
                         || request.getPrimaryImageName() != null
                         || request.getSecondaryImages() != null
-                        || request.getIsActive() != null;
+                        || request.getIsActive() != null
+                        || hasFile(primaryImageFile)
+                        || secondaryImageFiles != null;
 
         if (!hasUpdatableField) {
             throw new BadRequestException("At least one field must be provided for update");
@@ -257,16 +273,13 @@ public class ProductServiceImpl implements ProductService {
             variation.setPrice(request.getPrice());
         }
 
-        if (request.getPrimaryImageName() != null) {
-            String primaryImage = normalizeRequired(request.getPrimaryImageName(), "Primary image is required");
-            if (!isSupportedImage(primaryImage)) {
-                throw new BadRequestException("Invalid primary image format");
-            }
+        if (request.getPrimaryImageName() != null || hasFile(primaryImageFile)) {
+            String primaryImage = resolvePrimaryImageName(request.getPrimaryImageName(), primaryImageFile);
             variation.setPrimaryImageName(primaryImage);
         }
 
-        if (request.getSecondaryImages() != null) {
-            variation.setSecondaryImages(serializeSecondaryImages(request.getSecondaryImages()));
+        if (request.getSecondaryImages() != null || secondaryImageFiles != null) {
+            variation.setSecondaryImages(serializeSecondaryImages(request.getSecondaryImages(), secondaryImageFiles));
         }
 
         if (request.getIsActive() != null) {
@@ -304,7 +317,11 @@ public class ProductServiceImpl implements ProductService {
         }
 
         try {
-            productVariationRepository.save(variation);
+            ProductVariation savedVariation = productVariationRepository.save(variation);
+            if (savedVariation == null) {
+                savedVariation = variation;
+            }
+            storeVariationImages(product, savedVariation, primaryImageFile, secondaryImageFiles, request.getSecondaryImages() != null);
         } catch (DataIntegrityViolationException ex) {
             throw new BadRequestException("Variation already exists");
         }
@@ -585,6 +602,24 @@ public class ProductServiceImpl implements ProductService {
         return serializeSecondaryImages(request.getSecondaryImages());
     }
 
+    private String serializeSecondaryImages(AddProductVariationRequest request, List<MultipartFile> secondaryImageFiles) {
+        if (secondaryImageFiles != null) {
+            return secondaryImageFiles.isEmpty()
+                    ? null
+                    : serializeSecondaryImageNames(secondaryImageFiles);
+        }
+        return serializeSecondaryImages(request);
+    }
+
+    private String serializeSecondaryImages(List<String> images, List<MultipartFile> secondaryImageFiles) {
+        if (secondaryImageFiles != null) {
+            return secondaryImageFiles.isEmpty()
+                    ? null
+                    : serializeSecondaryImageNames(secondaryImageFiles);
+        }
+        return serializeSecondaryImages(images);
+    }
+
     private String serializeSecondaryImages(List<String> images) {
         if (images == null || images.isEmpty()) {
             return null;
@@ -604,7 +639,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private boolean isSupportedImage(String imageName) {
-        return imageName.toLowerCase().matches(".*\\.(jpg|jpeg|png)$");
+        return imageName.toLowerCase().matches(".*\\.(jpg|jpeg|png|bmp)$");
     }
 
     private CustomerProductCategoryResponse buildCustomerCategory(Category category) {
@@ -618,9 +653,56 @@ public class ProductServiceImpl implements ProductService {
     private List<String> getPrimaryImages(Product product) {
         return productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product)
                 .stream()
-                .map(ProductVariation::getPrimaryImageName)
+                .map(variation -> {
+                    String imageUrl = imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId());
+                    return imageUrl != null ? imageUrl : variation.getPrimaryImageName();
+                })
                 .distinct()
                 .toList();
+    }
+
+    private void storeVariationImages(
+            Product product,
+            ProductVariation variation,
+            MultipartFile primaryImageFile,
+            List<MultipartFile> secondaryImageFiles,
+            boolean clearSecondaryImages
+    ) {
+        if (hasFile(primaryImageFile)) {
+            imageStorageService.storeVariationPrimaryImage(product.getId(), variation.getId(), primaryImageFile);
+        }
+
+        if (secondaryImageFiles != null) {
+            imageStorageService.replaceVariationSecondaryImages(product.getId(), variation.getId(), secondaryImageFiles);
+        } else if (clearSecondaryImages) {
+            imageStorageService.replaceVariationSecondaryImages(product.getId(), variation.getId(), List.of());
+        }
+    }
+
+    private String resolvePrimaryImageName(String requestImageName, MultipartFile primaryImageFile) {
+        if (hasFile(primaryImageFile)) {
+            String primaryImage = normalizeRequired(primaryImageFile.getOriginalFilename(), "Primary image is required");
+            if (!isSupportedImage(primaryImage)) {
+                throw new BadRequestException("Invalid primary image format");
+            }
+            return primaryImage;
+        }
+
+        String primaryImage = normalizeRequired(requestImageName, "Primary image is required");
+        if (!isSupportedImage(primaryImage)) {
+            throw new BadRequestException("Invalid primary image format");
+        }
+        return primaryImage;
+    }
+
+    private String serializeSecondaryImageNames(List<MultipartFile> images) {
+        return serializeSecondaryImages(images.stream()
+                .map(image -> normalizeRequired(image.getOriginalFilename(), "Secondary image is required"))
+                .toList());
+    }
+
+    private boolean hasFile(MultipartFile file) {
+        return file != null && !file.isEmpty();
     }
 
     private List<Category> getCategoryAndDescendants(Category category) {

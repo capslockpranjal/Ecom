@@ -1,12 +1,12 @@
 package org.example.zenvybackend.admin.service;
 
 import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
-import org.example.zenvybackend.admin.dto.AdminProductResponse;
+
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.common.response.PagedResponse;
 
-import java.util.List;
+
 import java.util.UUID;
 
 public interface AdminService {

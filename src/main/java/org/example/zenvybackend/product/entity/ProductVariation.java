@@ -6,8 +6,6 @@ import org.example.zenvybackend.common.entity.BaseEntity;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -43,7 +41,7 @@ public class ProductVariation extends BaseEntity {
     @Column(nullable = false)
     private Double price;
 
-    // 🔥 JSON column (as per requirement)
+
     @Column(columnDefinition = "json", nullable = false)
     private String metadata;
 

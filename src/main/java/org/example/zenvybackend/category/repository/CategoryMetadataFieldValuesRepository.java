@@ -13,16 +13,16 @@ import java.util.Optional;
 public interface CategoryMetadataFieldValuesRepository
         extends JpaRepository<CategoryMetadataFieldValues, CategoryMetadataFieldValuesId> {
 
-    // 🔹 Get metadata for category + field (ignore deleted)
+    //  Get metadata for category + field (ignore deleted)
     Optional<CategoryMetadataFieldValues> findByCategoryAndFieldAndIsDeletedFalse(
             Category category,
             CategoryMetadataField field
     );
 
-    // 🔹 Get all metadata of category (ignore deleted)
+    //  Get all metadata of category (ignore deleted)
     List<CategoryMetadataFieldValues> findByCategoryAndIsDeletedFalse(Category category);
 
-    // 🔹 Fetch with field (for response)
+    //  Fetch with field (for response)
     @Query("""
         SELECT v
         FROM CategoryMetadataFieldValues v

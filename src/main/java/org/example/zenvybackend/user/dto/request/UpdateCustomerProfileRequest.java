@@ -9,15 +9,15 @@ import lombok.Setter;
 @Setter
 public class UpdateCustomerProfileRequest {
 
-    // PATCH semantics: optional, but if provided must not be blank
+
     @Pattern(regexp = "^(?!\\s*$).+", message = "First name must not be blank")
     private String firstName;
 
-    // PATCH semantics: optional, but if provided must not be blank
+
     @Pattern(regexp = "^(?!\\s*$).+", message = "Middle name must not be blank")
     private String middleName;
 
-    // PATCH semantics: optional, but if provided must not be blank
+
     @Pattern(regexp = "^(?!\\s*$).+", message = "Last name must not be blank")
     private String lastName;
 

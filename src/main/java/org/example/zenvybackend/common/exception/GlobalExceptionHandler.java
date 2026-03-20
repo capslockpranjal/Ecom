@@ -2,7 +2,6 @@ package org.example.zenvybackend.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.common.response.ErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -15,6 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -288,6 +290,38 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("BAD_REQUEST")
                 .message(ex.getParameterName() + " parameter is required")
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestPart(
+            MissingServletRequestPartException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("BAD_REQUEST")
+                .message(ex.getRequestPartName() + " part is required")
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler({MultipartException.class, MaxUploadSizeExceededException.class})
+    public ResponseEntity<ErrorResponse> handleMultipartException(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("BAD_REQUEST")
+                .message("Invalid multipart request")
                 .path(request.getRequestURI())
                 .build();
 

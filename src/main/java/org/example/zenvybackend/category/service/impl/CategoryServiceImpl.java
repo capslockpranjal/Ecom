@@ -33,7 +33,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final ProductVariationRepository productVariationRepository;
     private final CustomerRepository customerRepository;
 
-    // ================= CREATE CATEGORY =================
+
     @Override
     public UUID createCategory(CreateCategoryRequest request) {
 
@@ -77,7 +77,7 @@ public class CategoryServiceImpl implements CategoryService {
         return category.getId();
     }
 
-    // ================= GET CATEGORIES =================
+
     @Override
     public Page<CategoryTreeResponse> getCategories(UUID categoryId, PageRequestDto dto) {
 
@@ -109,7 +109,7 @@ public class CategoryServiceImpl implements CategoryService {
         return categories.map(this::buildCategoryTree);
     }
 
-    // ================= UPDATE CATEGORY =================
+
     @Override
     public void updateCategory(UUID categoryId, UpdateCategoryRequest request) {
 
@@ -136,7 +136,7 @@ public class CategoryServiceImpl implements CategoryService {
         categoryRepository.save(category);
     }
 
-    // ================= ADD METADATA FIELD =================
+
     @Override
     public UUID addMetadataField(String name) {
 
@@ -155,7 +155,7 @@ public class CategoryServiceImpl implements CategoryService {
         return field.getId();
     }
 
-    // ================= GET METADATA FIELDS =================
+
     @Override
     public Page<CategoryMetadataField> getMetadataFields(PageRequestDto dto) {
 
@@ -170,7 +170,7 @@ public class CategoryServiceImpl implements CategoryService {
         return fieldRepository.findByIsDeletedFalse(pageable);
     }
 
-    // ================= ADD METADATA VALUES =================
+
     @Override
     public void addMetadataValues(UUID categoryId, List<AddMetadataValueRequest> requests) {
 
@@ -229,7 +229,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
     }
 
-    // ================= BUILD TREE =================
+
     private CategoryTreeResponse buildCategoryTree(Category category) {
 
         List<Category> childrenCategories =
@@ -285,7 +285,7 @@ public class CategoryServiceImpl implements CategoryService {
         return parents;
     }
 
-    // ================= CUSTOMER CATEGORY =================
+
     @Override
     public List<CustomerCategoryResponse> getCustomerCategories(UUID categoryId) {
         getCurrentActiveCustomer();
@@ -359,7 +359,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .build();
     }
 
-    // ================= FILTERING =================
+
     @Override
     public FilteringResponse getFilteringData(UUID categoryId) {
         getCurrentActiveCustomer();
@@ -371,10 +371,10 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        // ✅ 1. Get ALL subcategories (including parent)
+        //  1. Get ALL subcategories (including parent)
         List<Category> allCategories = getAllSubCategories(category);
 
-        // ✅ 2. CATEGORY METADATA (allowed fields)
+        //  2. CATEGORY METADATA (allowed fields)
         List<CategoryMetadataFieldValues> categoryMetadata =
                 valuesRepository.findByCategoryWithField(category);
 
@@ -391,7 +391,7 @@ public class CategoryServiceImpl implements CategoryService {
             allowedMap.put(v.getField().getName(), values);
         }
 
-        // ✅ 3. FULL CATEGORY METADATA VALUES
+        //  3. FULL CATEGORY METADATA VALUES
         List<MetadataFieldResponse> metadataFilters = categoryMetadata.stream()
                 .map(v -> {
 
@@ -409,7 +409,7 @@ public class CategoryServiceImpl implements CategoryService {
                 })
                 .toList();
 
-        // ✅ 4. BRANDS (ALL categories)
+        //  4. BRANDS (ALL categories)
         List<String> brands = new ArrayList<>();
 
         for (Category cat : allCategories) {
@@ -418,7 +418,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         brands = brands.stream().distinct().toList();
 
-        // ✅ 5. PRICE RANGE
+        //  5. PRICE RANGE
         Double min = null;
         Double max = null;
 
