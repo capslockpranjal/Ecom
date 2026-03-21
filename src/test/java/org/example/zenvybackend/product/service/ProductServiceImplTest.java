@@ -26,6 +26,7 @@ import org.example.zenvybackend.product.mapper.ProductMapper;
 import org.example.zenvybackend.product.mapper.ProductVariationMapper;
 import org.example.zenvybackend.product.repository.ProductRepository;
 import org.example.zenvybackend.product.repository.ProductVariationRepository;
+import org.example.zenvybackend.product.service.ProductEmailService;
 import org.example.zenvybackend.product.service.impl.ProductServiceImpl;
 import org.example.zenvybackend.security.service.CustomUserDetails;
 import org.example.zenvybackend.user.entity.Customer;
@@ -70,7 +71,7 @@ import static org.mockito.Mockito.when;
 class ProductServiceImplTest {
 
     @Mock
-    private EmailService emailService;
+    private ProductEmailService emailService;
 
     @Mock
     private ProductRepository productRepository;

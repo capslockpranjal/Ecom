@@ -29,7 +29,7 @@ import org.example.zenvybackend.product.mapper.ProductMapper;
 import org.example.zenvybackend.product.mapper.ProductVariationMapper;
 import org.example.zenvybackend.product.repository.ProductRepository;
 import org.example.zenvybackend.product.repository.ProductVariationRepository;
-import org.example.zenvybackend.product.service.EmailService;
+import org.example.zenvybackend.product.service.ProductEmailService;
 import org.example.zenvybackend.product.service.ProductService;
 import org.example.zenvybackend.security.util.SecurityUtil;
 import org.example.zenvybackend.user.entity.Customer;
@@ -63,7 +63,7 @@ public class ProductServiceImpl implements ProductService {
     private static final List<String> CUSTOMER_PRODUCT_SORT_FIELDS = List.of("createdAt", "name", "brand");
     private static final TypeReference<Map<String, String>> STRING_MAP_TYPE = new TypeReference<>() { };
 
-    private final EmailService emailService;
+    private final ProductEmailService emailService;
     private final ProductRepository productRepository;
     private final ProductVariationRepository productVariationRepository;
     private final ProductMapper productMapper;

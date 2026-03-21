@@ -17,7 +17,7 @@ import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.example.zenvybackend.user.repository.SellerRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
-import org.example.zenvybackend.user.service.EmailService;
+import org.example.zenvybackend.user.service.UserEmailService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -51,7 +51,7 @@ class AdminServiceImplTest {
     private SellerRepository sellerRepository;
 
     @Mock
-    private EmailService emailService;
+    private UserEmailService emailService;
 
     @Mock
     private ProductRepository productRepository;

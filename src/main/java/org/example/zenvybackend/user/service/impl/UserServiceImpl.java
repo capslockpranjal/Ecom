@@ -20,7 +20,7 @@ import org.example.zenvybackend.user.repository.SellerRepository;
 import org.example.zenvybackend.user.repository.TokenRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
 import org.example.zenvybackend.user.token.TokenType;
-import org.example.zenvybackend.user.service.EmailService;
+import org.example.zenvybackend.user.service.UserEmailService;
 import org.example.zenvybackend.user.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
     private final SellerRepository sellerRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenRepository tokenRepository;
-    private final EmailService emailService;
+    private final UserEmailService emailService;
     private final ImageStorageService imageStorageService;
 
     @Override

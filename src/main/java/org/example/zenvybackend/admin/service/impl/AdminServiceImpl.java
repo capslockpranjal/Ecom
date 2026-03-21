@@ -25,7 +25,7 @@ import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.example.zenvybackend.user.repository.SellerRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
-import org.example.zenvybackend.user.service.EmailService;
+import org.example.zenvybackend.user.service.UserEmailService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,7 +42,7 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final SellerRepository sellerRepository;
-    private final EmailService emailService;
+    private final UserEmailService emailService;
     private final ProductRepository productRepository;
     private final ProductVariationRepository productVariationRepository;
     private final CategoryRepository categoryRepository;

@@ -3,7 +3,7 @@ package org.example.zenvybackend.product.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.product.entity.Product;
-import org.example.zenvybackend.product.service.EmailService;
+import org.example.zenvybackend.product.service.ProductEmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class EmailServiceImpl implements EmailService {
+public class ProductEmailServiceImpl implements ProductEmailService {
 
     private final JavaMailSender mailSender;
 
