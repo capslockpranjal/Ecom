@@ -293,9 +293,6 @@ class ProductServiceImplTest {
                 .thenReturn(false);
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product))
                 .thenReturn(List.of());
-        when(objectMapper.writeValueAsString(List.of("side.png", "top.jpeg")))
-                .thenReturn("[\"side.png\",\"top.jpeg\"]");
-
         productService.addVariation(request);
 
         ArgumentCaptor<ProductVariation> captor = ArgumentCaptor.forClass(ProductVariation.class);
@@ -306,8 +303,6 @@ class ProductServiceImplTest {
         assertEquals(5, savedVariation.getQuantityAvailable());
         assertEquals(1299.0, savedVariation.getPrice());
         assertEquals("{\"color\":\"Blue\",\"size\":\"M\"}", savedVariation.getMetadata());
-        assertEquals("shoe.JPG", savedVariation.getPrimaryImageName());
-        assertEquals("[\"side.png\",\"top.jpeg\"]", savedVariation.getSecondaryImages());
         assertEquals(Boolean.TRUE, savedVariation.getIsActive());
     }
 
@@ -744,8 +739,6 @@ class ProductServiceImplTest {
         variation.setQuantityAvailable(5);
         variation.setPrice(10.0);
         variation.setMetadata("{\"size\":\"M\"}");
-        variation.setPrimaryImageName("old.png");
-        variation.setSecondaryImages("[\"old.png\"]");
         variation.setIsActive(true);
         variation.setIsDeleted(false);
 
@@ -781,15 +774,11 @@ class ProductServiceImplTest {
         when(productVariationRepository.findByProductAndIsDeletedFalse(product)).thenReturn(List.of(variation));
         when(productVariationRepository.existsByProductAndMetadataAndIsDeletedFalseAndIdNot(product, "{\"size\":\"L\"}", variationId))
                 .thenReturn(false);
-        when(objectMapper.writeValueAsString(List.of("side.png"))).thenReturn("[\"side.png\"]");
-
         productService.updateVariation(variationId, request);
 
         assertEquals(9, variation.getQuantityAvailable());
         assertEquals(15.5, variation.getPrice());
         assertEquals("{\"size\":\"L\"}", variation.getMetadata());
-        assertEquals("hero.JPG", variation.getPrimaryImageName());
-        assertEquals("[\"side.png\"]", variation.getSecondaryImages());
         assertEquals(Boolean.FALSE, variation.getIsActive());
         verify(productVariationRepository).save(variation);
     }
@@ -1209,14 +1198,12 @@ class ProductServiceImplTest {
         ProductVariation variation = new ProductVariation();
         variation.setId(UUID.randomUUID());
         variation.setProduct(product);
-        variation.setPrimaryImageName("front.png");
         variation.setIsActive(true);
         variation.setIsDeleted(false);
 
         ProductVariation anotherVariation = new ProductVariation();
         anotherVariation.setId(UUID.randomUUID());
         anotherVariation.setProduct(product);
-        anotherVariation.setPrimaryImageName("side.png");
         anotherVariation.setIsActive(true);
         anotherVariation.setIsDeleted(false);
 
@@ -1235,6 +1222,10 @@ class ProductServiceImplTest {
         when(productRepository.findActiveCustomerVisibleProductsByCategories(any(), any())).thenReturn(page);
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product))
                 .thenReturn(List.of(variation, anotherVariation));
+        when(imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId()))
+                .thenReturn("/files/products/" + product.getId() + "/variations/" + variation.getId() + "/primary");
+        when(imageStorageService.getVariationPrimaryImageUrl(product.getId(), anotherVariation.getId()))
+                .thenReturn("/files/products/" + product.getId() + "/variations/" + anotherVariation.getId() + "/primary");
 
         Object result = productService.getCustomerProducts(categoryId, dto);
 
@@ -1243,7 +1234,13 @@ class ProductServiceImplTest {
         CustomerProductListItemResponse response = (CustomerProductListItemResponse) resultPage.getContent().get(0);
         assertEquals("Runner", response.getName());
         assertEquals("Shoes", response.getCategory().getName());
-        assertEquals(List.of("front.png", "side.png"), response.getPrimaryImages());
+        assertEquals(
+                List.of(
+                        "/files/products/" + product.getId() + "/variations/" + variation.getId() + "/primary",
+                        "/files/products/" + product.getId() + "/variations/" + anotherVariation.getId() + "/primary"
+                ),
+                response.getPrimaryImages()
+        );
     }
 
     @Test
@@ -1290,7 +1287,6 @@ class ProductServiceImplTest {
         ProductVariation variation = new ProductVariation();
         variation.setId(UUID.randomUUID());
         variation.setProduct(similarProduct);
-        variation.setPrimaryImageName("front.png");
         variation.setIsActive(true);
         variation.setIsDeleted(false);
 
@@ -1308,6 +1304,8 @@ class ProductServiceImplTest {
                 .thenReturn(page);
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(similarProduct))
                 .thenReturn(List.of(variation));
+        when(imageStorageService.getVariationPrimaryImageUrl(similarProduct.getId(), variation.getId()))
+                .thenReturn("/files/products/" + similarProduct.getId() + "/variations/" + variation.getId() + "/primary");
 
         Object result = productService.getSimilarCustomerProducts(productId, dto);
 
@@ -1316,7 +1314,10 @@ class ProductServiceImplTest {
         CustomerProductListItemResponse response = (CustomerProductListItemResponse) resultPage.getContent().get(0);
         assertEquals(similarProduct.getId(), response.getId());
         assertEquals("Shoes", response.getCategory().getName());
-        assertEquals(List.of("front.png"), response.getPrimaryImages());
+        assertEquals(
+                List.of("/files/products/" + similarProduct.getId() + "/variations/" + variation.getId() + "/primary"),
+                response.getPrimaryImages()
+        );
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.example.zenvybackend.category.repository.CategoryRepository;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.response.PagedResponse;
+import org.example.zenvybackend.common.storage.ImageStorageService;
 import org.example.zenvybackend.common.util.PageUtils;
 import org.example.zenvybackend.product.entity.Product;
 import org.example.zenvybackend.product.entity.ProductVariation;
@@ -45,6 +46,7 @@ public class AdminServiceImpl implements AdminService {
     private final ProductRepository productRepository;
     private final ProductVariationRepository productVariationRepository;
     private final CategoryRepository categoryRepository;
+    private final ImageStorageService imageStorageService;
 
     @Override
     public PagedResponse<AdminCustomerResponse> listCustomers(
@@ -334,7 +336,8 @@ public class AdminServiceImpl implements AdminService {
                         .build())
                 .primaryImages(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product)
                         .stream()
-                        .map(ProductVariation::getPrimaryImageName)
+                        .map(variation -> imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId()))
+                        .filter(java.util.Objects::nonNull)
                         .distinct()
                         .toList())
                 .build();

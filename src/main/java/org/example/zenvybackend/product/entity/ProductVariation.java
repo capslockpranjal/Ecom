@@ -44,13 +44,6 @@ public class ProductVariation extends BaseEntity {
 
     @Column(columnDefinition = "json", nullable = false)
     private String metadata;
-
-    @Column(nullable = false)
-    private String primaryImageName;
-
     @Column(nullable = false)
     private Boolean isActive = true;
-
-    @Column(columnDefinition = "json")
-    private String secondaryImages;
 }

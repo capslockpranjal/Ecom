@@ -134,7 +134,7 @@ public class ProductServiceImpl implements ProductService {
             throw new BadRequestException("Product is not active");
         }
 
-        String primaryImage = resolvePrimaryImageName(request.getPrimaryImageName(), primaryImageFile);
+        validatePrimaryImageInput(request.getPrimaryImageName(), primaryImageFile);
 
         String metadata;
         try {
@@ -161,15 +161,13 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        String secondaryImages = serializeSecondaryImages(request, secondaryImageFiles);
+        validateSecondaryImagesInput(request.getSecondaryImages(), secondaryImageFiles);
 
         ProductVariation variation = ProductVariation.builder()
                 .product(product)
                 .quantityAvailable(request.getQuantityAvailable())
                 .price(request.getPrice())
                 .metadata(metadata)
-                .primaryImageName(primaryImage)
-                .secondaryImages(secondaryImages)
                 .isActive(true)
                 .build();
 
@@ -274,12 +272,11 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (request.getPrimaryImageName() != null || hasFile(primaryImageFile)) {
-            String primaryImage = resolvePrimaryImageName(request.getPrimaryImageName(), primaryImageFile);
-            variation.setPrimaryImageName(primaryImage);
+            validatePrimaryImageInput(request.getPrimaryImageName(), primaryImageFile);
         }
 
         if (request.getSecondaryImages() != null || secondaryImageFiles != null) {
-            variation.setSecondaryImages(serializeSecondaryImages(request.getSecondaryImages(), secondaryImageFiles));
+            validateSecondaryImagesInput(request.getSecondaryImages(), secondaryImageFiles);
         }
 
         if (request.getIsActive() != null) {
@@ -598,46 +595,6 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    private String serializeSecondaryImages(AddProductVariationRequest request) {
-        return serializeSecondaryImages(request.getSecondaryImages());
-    }
-
-    private String serializeSecondaryImages(AddProductVariationRequest request, List<MultipartFile> secondaryImageFiles) {
-        if (secondaryImageFiles != null) {
-            return secondaryImageFiles.isEmpty()
-                    ? null
-                    : serializeSecondaryImageNames(secondaryImageFiles);
-        }
-        return serializeSecondaryImages(request);
-    }
-
-    private String serializeSecondaryImages(List<String> images, List<MultipartFile> secondaryImageFiles) {
-        if (secondaryImageFiles != null) {
-            return secondaryImageFiles.isEmpty()
-                    ? null
-                    : serializeSecondaryImageNames(secondaryImageFiles);
-        }
-        return serializeSecondaryImages(images);
-    }
-
-    private String serializeSecondaryImages(List<String> images) {
-        if (images == null || images.isEmpty()) {
-            return null;
-        }
-
-        for (String image : images) {
-            if (image == null || !isSupportedImage(image.trim())) {
-                throw new BadRequestException("Invalid secondary image: " + image);
-            }
-        }
-
-        try {
-            return objectMapper.writeValueAsString(images.stream().map(String::trim).toList());
-        } catch (Exception ex) {
-            throw new BadRequestException("Invalid secondary images format");
-        }
-    }
-
     private boolean isSupportedImage(String imageName) {
         return imageName.toLowerCase().matches(".*\\.(jpg|jpeg|png|bmp)$");
     }
@@ -653,10 +610,8 @@ public class ProductServiceImpl implements ProductService {
     private List<String> getPrimaryImages(Product product) {
         return productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product)
                 .stream()
-                .map(variation -> {
-                    String imageUrl = imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId());
-                    return imageUrl != null ? imageUrl : variation.getPrimaryImageName();
-                })
+                .map(variation -> imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId()))
+                .filter(java.util.Objects::nonNull)
                 .distinct()
                 .toList();
     }
@@ -679,26 +634,41 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    private String resolvePrimaryImageName(String requestImageName, MultipartFile primaryImageFile) {
+    private void validatePrimaryImageInput(String requestImageName, MultipartFile primaryImageFile) {
         if (hasFile(primaryImageFile)) {
             String primaryImage = normalizeRequired(primaryImageFile.getOriginalFilename(), "Primary image is required");
             if (!isSupportedImage(primaryImage)) {
                 throw new BadRequestException("Invalid primary image format");
             }
-            return primaryImage;
+            return;
         }
 
         String primaryImage = normalizeRequired(requestImageName, "Primary image is required");
         if (!isSupportedImage(primaryImage)) {
             throw new BadRequestException("Invalid primary image format");
         }
-        return primaryImage;
     }
 
-    private String serializeSecondaryImageNames(List<MultipartFile> images) {
-        return serializeSecondaryImages(images.stream()
-                .map(image -> normalizeRequired(image.getOriginalFilename(), "Secondary image is required"))
-                .toList());
+    private void validateSecondaryImagesInput(List<String> imageNames, List<MultipartFile> imageFiles) {
+        if (imageFiles != null) {
+            for (MultipartFile image : imageFiles) {
+                String imageName = normalizeRequired(image.getOriginalFilename(), "Secondary image is required");
+                if (!isSupportedImage(imageName)) {
+                    throw new BadRequestException("Invalid secondary image: " + imageName);
+                }
+            }
+            return;
+        }
+
+        if (imageNames == null) {
+            return;
+        }
+
+        for (String imageName : imageNames) {
+            if (imageName == null || !isSupportedImage(imageName.trim())) {
+                throw new BadRequestException("Invalid secondary image: " + imageName);
+            }
+        }
     }
 
     private boolean hasFile(MultipartFile file) {

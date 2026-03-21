@@ -95,10 +95,7 @@ AND pv.isActive = true
         where pv.product = :product
           and pv.isDeleted = false
           and pv.isActive = true
-          and (
-            lower(pv.metadata) like lower(concat('%', :query, '%'))
-            or lower(pv.primaryImageName) like lower(concat('%', :query, '%'))
-          )
+          and lower(pv.metadata) like lower(concat('%', :query, '%'))
     """)
     Page<ProductVariation> searchByProductAndQuery(
             Product product,

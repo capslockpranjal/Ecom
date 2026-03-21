@@ -7,6 +7,7 @@ import org.example.zenvybackend.category.entity.Category;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.category.repository.CategoryRepository;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
+import org.example.zenvybackend.common.storage.ImageStorageService;
 import org.example.zenvybackend.product.entity.Product;
 import org.example.zenvybackend.product.entity.ProductVariation;
 import org.example.zenvybackend.product.repository.ProductRepository;
@@ -61,6 +62,9 @@ class AdminServiceImplTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private ImageStorageService imageStorageService;
+
     @InjectMocks
     private AdminServiceImpl adminService;
 
@@ -87,7 +91,8 @@ class AdminServiceImplTest {
         product.setIsActive(true);
 
         ProductVariation variation = new ProductVariation();
-        variation.setPrimaryImageName("front.png");
+        variation.setId(UUID.randomUUID());
+        variation.setProduct(product);
 
         PageRequestDto dto = new PageRequestDto();
         dto.setMax(10);
@@ -99,6 +104,8 @@ class AdminServiceImplTest {
 
         when(productRepository.findAdminVisibleProducts(eq(null), eq(null), any())).thenReturn(page);
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product)).thenReturn(List.of(variation));
+        when(imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId()))
+                .thenReturn("/files/products/" + product.getId() + "/variations/" + variation.getId() + "/primary");
 
         Object result = adminService.getProducts(null, null, null, dto);
 
@@ -106,7 +113,10 @@ class AdminServiceImplTest {
         assertEquals(1, resultPage.getTotalElements());
         AdminProductResponse response = (AdminProductResponse) resultPage.getContent().get(0);
         assertEquals("Runner", response.getName());
-        assertEquals(List.of("front.png"), response.getPrimaryImages());
+        assertEquals(
+                List.of("/files/products/" + product.getId() + "/variations/" + variation.getId() + "/primary"),
+                response.getPrimaryImages()
+        );
     }
 
     @Test

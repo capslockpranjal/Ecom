@@ -7,7 +7,6 @@ import org.example.zenvybackend.product.dto.response.ProductVariationResponse;
 import org.example.zenvybackend.product.entity.ProductVariation;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,11 +24,6 @@ public class ProductVariationMapper {
             Map<String, String> metadata =
                     mapper.readValue(variation.getMetadata(), Map.class);
 
-            List<String> images =
-                    variation.getSecondaryImages() == null
-                            ? new ArrayList<>()
-                            : mapper.readValue(variation.getSecondaryImages(), List.class);
-
             String primaryImageUrl = imageStorageService.getVariationPrimaryImageUrl(
                     variation.getProduct().getId(),
                     variation.getId()
@@ -45,8 +39,8 @@ public class ProductVariationMapper {
                     .price(variation.getPrice())
                     .isActive(variation.getIsActive())
                     .metadata(metadata)
-                    .primaryImage(primaryImageUrl != null ? primaryImageUrl : variation.getPrimaryImageName())
-                    .secondaryImages(secondaryImageUrls.isEmpty() ? images : secondaryImageUrls)
+                    .primaryImage(primaryImageUrl)
+                    .secondaryImages(secondaryImageUrls)
                     .build();
 
         } catch (Exception e) {
