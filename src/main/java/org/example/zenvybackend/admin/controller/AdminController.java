@@ -2,6 +2,7 @@ package org.example.zenvybackend.admin.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
+import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
 import org.example.zenvybackend.admin.service.AdminService;
 import org.example.zenvybackend.common.response.ApiResponse;
@@ -74,5 +75,39 @@ public class AdminController {
 
         adminService.deactivateSeller(id);
         return ApiResponse.success("Seller deactivated successfully");
+    }
+
+    @GetMapping("/products")
+    public ApiResponse<?> getProducts(
+            @RequestParam(required = false) Integer max,
+            @RequestParam(required = false) Integer offset,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String order,
+            @RequestParam(required = false) UUID sellerId,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) UUID productId
+    ) {
+        PageRequestDto dto = new PageRequestDto();
+        dto.setMax(max);
+        dto.setOffset(offset);
+        dto.setSort(sort);
+        dto.setOrder(order);
+
+        return ApiResponse.success(
+                "Product list",
+                adminService.getProducts(productId, sellerId, categoryId, dto)
+        );
+    }
+
+    @PutMapping("/products/{id}/activate")
+    public ApiResponse<Void> activateProduct(@PathVariable UUID id) {
+        adminService.activateProduct(id);
+        return ApiResponse.success("Product activated successfully");
+    }
+
+    @PutMapping("/products/{id}/deactivate")
+    public ApiResponse<Void> deactivateProduct(@PathVariable UUID id) {
+        adminService.deactivateProduct(id);
+        return ApiResponse.success("Product deactivated successfully");
     }
 }

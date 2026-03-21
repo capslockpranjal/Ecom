@@ -36,7 +36,7 @@ public class BootstrapService {
         createAdmin();
     }
 
-    /* ---------------- CREATE ROLES ---------------- */
+
 
     private void createRoles(){
 
@@ -56,7 +56,7 @@ public class BootstrapService {
         }
     }
 
-    /* ---------------- CREATE ADMIN ---------------- */
+
 
     private void createAdmin(){
 

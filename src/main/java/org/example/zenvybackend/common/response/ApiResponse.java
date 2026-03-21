@@ -19,7 +19,7 @@ public class ApiResponse<T> {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
 
-    /* SUCCESS RESPONSE WITH DATA */
+
 
     public static <T> ApiResponse<T> success(String message,T data) {
         return ApiResponse.<T>builder()
@@ -30,7 +30,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    /* SUCCESS RESPONSE WITH MESSAGE */
+
 
     public static <T> ApiResponse<T> success(String message) {
         return ApiResponse.<T>builder()
@@ -47,7 +47,7 @@ public class ApiResponse<T> {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
-    /* FAILURE RESPONSE */
+
 
     public static <T> ApiResponse<T> failure(String message) {
         return ApiResponse.<T>builder()

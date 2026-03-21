@@ -1,19 +1,32 @@
 package org.example.zenvybackend.admin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
+import org.example.zenvybackend.admin.dto.AdminProductCategoryResponse;
+import org.example.zenvybackend.admin.dto.AdminProductResponse;
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
 import org.example.zenvybackend.admin.service.AdminService;
+import org.example.zenvybackend.category.dto.request.PageRequestDto;
+import org.example.zenvybackend.category.dto.response.ParentCategoryResponse;
+import org.example.zenvybackend.category.entity.Category;
+import org.example.zenvybackend.category.repository.CategoryRepository;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.response.PagedResponse;
+import org.example.zenvybackend.common.storage.ImageStorageService;
+import org.example.zenvybackend.common.util.PageUtils;
+import org.example.zenvybackend.product.entity.Product;
+import org.example.zenvybackend.product.entity.ProductVariation;
+import org.example.zenvybackend.product.repository.ProductRepository;
+import org.example.zenvybackend.product.repository.ProductVariationRepository;
 import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Seller;
 import org.example.zenvybackend.user.entity.User;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.example.zenvybackend.user.repository.SellerRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
-import org.example.zenvybackend.user.service.EmailService;
+import org.example.zenvybackend.user.service.UserEmailService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,12 +38,17 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final SellerRepository sellerRepository;
-    private final EmailService emailService;
+    private final UserEmailService emailService;
+    private final ProductRepository productRepository;
+    private final ProductVariationRepository productVariationRepository;
+    private final CategoryRepository categoryRepository;
+    private final ImageStorageService imageStorageService;
 
     @Override
     public PagedResponse<AdminCustomerResponse> listCustomers(
@@ -153,6 +171,7 @@ public class AdminServiceImpl implements AdminService {
                 "Account Activated",
                 "Your customer account has been activated by the admin."
         );
+        log.info("Customer activated: userId={}", userId);
     }
 
     @Override
@@ -173,6 +192,7 @@ public class AdminServiceImpl implements AdminService {
                 "Account Deactivated",
                 "Your customer account has been deactivated by the admin."
         );
+        log.info("Customer deactivated: userId={}", userId);
     }
 
     @Override
@@ -201,6 +221,7 @@ public class AdminServiceImpl implements AdminService {
                 "Seller Account Activated",
                 "Your seller account has been activated by the admin."
         );
+        log.info("Seller activated: userId={}", userId);
     }
 
     @Override
@@ -229,5 +250,128 @@ public class AdminServiceImpl implements AdminService {
                 "Seller Account Deactivated",
                 "Your seller account has been deactivated by the admin."
         );
+        log.info("Seller deactivated: userId={}", userId);
+    }
+
+    @Override
+    public Object getProducts(UUID productId, UUID sellerId, UUID categoryId, PageRequestDto dto) {
+        Seller seller = null;
+        if (sellerId != null) {
+            seller = sellerRepository.findById(sellerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
+        }
+
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        }
+
+        if (productId != null) {
+            Product product = productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+            if (seller != null && !product.getSeller().getUserId().equals(seller.getUserId())) {
+                throw new ResourceNotFoundException("Product not found");
+            }
+
+            if (category != null && !product.getCategory().getId().equals(category.getId())) {
+                throw new ResourceNotFoundException("Product not found");
+            }
+
+            return List.of(mapProduct(product));
+        }
+
+        Pageable pageable = PageUtils.getPageable(dto, List.of("createdAt", "name", "brand"));
+        return productRepository.findAdminVisibleProducts(seller, category, pageable)
+                .map(this::mapProduct);
+    }
+
+    @Override
+    public void activateProduct(UUID productId) {
+        Product product = productRepository.findByIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (Boolean.TRUE.equals(product.getIsActive())) {
+            throw new BadRequestException("Product is already active");
+        }
+
+        product.setIsActive(true);
+        productRepository.save(product);
+
+        emailService.sendEmail(
+                product.getSeller().getUser().getEmail(),
+                "Product Activated",
+                buildProductStatusEmailBody(product, true)
+        );
+        log.info("Product activated: productId={}", productId);
+    }
+
+    @Override
+    public void deactivateProduct(UUID productId) {
+        Product product = productRepository.findByIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
+            throw new BadRequestException("Product is already inactive");
+        }
+
+        product.setIsActive(false);
+        productRepository.save(product);
+
+        emailService.sendEmail(
+                product.getSeller().getUser().getEmail(),
+                "Product Deactivated",
+                buildProductStatusEmailBody(product, false)
+        );
+        log.info("Product deactivated: productId={}", productId);
+    }
+
+    private AdminProductResponse mapProduct(Product product) {
+        return AdminProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .brand(product.getBrand())
+                .isCancellable(product.getIsCancellable())
+                .isReturnable(product.getIsReturnable())
+                .isActive(product.getIsActive())
+                .sellerId(product.getSeller().getUserId())
+                .category(AdminProductCategoryResponse.builder()
+                        .id(product.getCategory().getId())
+                        .name(product.getCategory().getName())
+                        .parentChain(buildParentChain(product.getCategory()))
+                        .build())
+                .primaryImages(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product)
+                        .stream()
+                        .map(variation -> imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId()))
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .toList())
+                .build();
+    }
+
+    private List<ParentCategoryResponse> buildParentChain(Category category) {
+        List<ParentCategoryResponse> parents = new java.util.ArrayList<>();
+        Category current = category.getParentCategory();
+
+        while (current != null) {
+            parents.add(ParentCategoryResponse.builder()
+                    .id(current.getId())
+                    .name(current.getName())
+                    .build());
+            current = current.getParentCategory();
+        }
+
+        java.util.Collections.reverse(parents);
+        return parents;
+    }
+
+    private String buildProductStatusEmailBody(Product product, boolean activated) {
+        return (activated ? "Your product has been activated.\n\n" : "Your product has been deactivated.\n\n")
+                + "Product ID: " + product.getId() + "\n"
+                + "Name: " + product.getName() + "\n"
+                + "Brand: " + product.getBrand() + "\n"
+                + "Category: " + product.getCategory().getName();
     }
 }

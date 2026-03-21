@@ -1,37 +1,39 @@
 package org.example.zenvybackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
+import org.example.zenvybackend.common.storage.ImageStorageService;
 import org.example.zenvybackend.security.util.SecurityUtil;
 import org.example.zenvybackend.user.dto.request.ChangePasswordRequest;
 import org.example.zenvybackend.user.dto.request.UpdateCustomerProfileRequest;
 import org.example.zenvybackend.user.dto.request.UpdateSellerProfileRequest;
-import org.example.zenvybackend.user.dto.response.AddressResponse;
 import org.example.zenvybackend.user.dto.response.CustomerProfileResponse;
 import org.example.zenvybackend.user.dto.response.SellerProfileResponse;
 import org.example.zenvybackend.user.entity.Address;
 import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Seller;
 import org.example.zenvybackend.user.entity.User;
-import org.example.zenvybackend.user.mapper.AddressMapper;
 import org.example.zenvybackend.user.mapper.UserMapper;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.example.zenvybackend.user.repository.SellerRepository;
 import org.example.zenvybackend.user.repository.TokenRepository;
 import org.example.zenvybackend.user.repository.UserRepository;
 import org.example.zenvybackend.user.token.TokenType;
-import org.example.zenvybackend.user.service.EmailService;
+import org.example.zenvybackend.user.service.UserEmailService;
 import org.example.zenvybackend.user.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final CustomerRepository customerRepository;
@@ -39,7 +41,8 @@ public class UserServiceImpl implements UserService {
     private final SellerRepository sellerRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenRepository tokenRepository;
-    private final EmailService emailService;
+    private final UserEmailService emailService;
+    private final ImageStorageService imageStorageService;
 
     @Override
     public CustomerProfileResponse getCustomerProfile() {
@@ -53,12 +56,19 @@ public class UserServiceImpl implements UserService {
                 .findByUser(user)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        return UserMapper.toProfileResponse(customer);
+        return UserMapper.toProfileResponse(customer, imageStorageService.getUserProfileImageUrl(user.getId()));
     }
 
     @Transactional
     @Override
     public CustomerProfileResponse updateCustomerProfile(UpdateCustomerProfileRequest request) {
+        return updateCustomerProfile(request, null);
+    }
+
+
+    @Transactional
+    @Override
+    public CustomerProfileResponse updateCustomerProfile(UpdateCustomerProfileRequest request, MultipartFile profileImage) {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         User user = userRepository.findById(currentUserId)
@@ -90,10 +100,13 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         customerRepository.save(customer);
 
+        if (profileImage != null && !profileImage.isEmpty()) {
+            imageStorageService.storeUserProfileImage(user.getId(), profileImage);
+            log.info("Customer profile image updated: userId={}", user.getId());
+        }
 
-        
-
-        return UserMapper.toProfileResponse(customer);
+        log.info("Customer profile updated: userId={}", user.getId());
+        return UserMapper.toProfileResponse(customer, imageStorageService.getUserProfileImageUrl(user.getId()));
     }
 
     @Override
@@ -111,12 +124,18 @@ public class UserServiceImpl implements UserService {
                 .findFirst()
                 .orElse(null);
 
-        return UserMapper.toSellerProfileResponse(seller, address);
+        return UserMapper.toSellerProfileResponse(seller, address, imageStorageService.getUserProfileImageUrl(currentUserId));
     }
 
     @Transactional
     @Override
     public SellerProfileResponse updateSellerProfile(UpdateSellerProfileRequest request) {
+        return updateSellerProfile(request, null);
+    }
+
+    @Transactional
+    @Override
+    public SellerProfileResponse updateSellerProfile(UpdateSellerProfileRequest request, MultipartFile profileImage) {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
         User user = userRepository.findById(currentUserId)
@@ -141,6 +160,10 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         sellerRepository.save(seller);
 
+        if (profileImage != null && !profileImage.isEmpty()) {
+            imageStorageService.storeUserProfileImage(user.getId(), profileImage);
+            log.info("Seller profile image updated: userId={}", user.getId());
+        }
 
         Seller refreshed = sellerRepository.findByIdWithUserAndAddresses(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
@@ -151,7 +174,8 @@ public class UserServiceImpl implements UserService {
                 .findFirst()
                 .orElse(null);
 
-        return UserMapper.toSellerProfileResponse(refreshed, address);
+        log.info("Seller profile updated: userId={}", user.getId());
+        return UserMapper.toSellerProfileResponse(refreshed, address, imageStorageService.getUserProfileImageUrl(user.getId()));
     }
 
     @Transactional
@@ -190,5 +214,6 @@ public class UserServiceImpl implements UserService {
         );
 
         tokenRepository.deleteByUserAndType(user, TokenType.REFRESH);
+        log.info("Password changed: userId={}", user.getId());
     }
 }
