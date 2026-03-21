@@ -1,5 +1,6 @@
 package org.example.zenvybackend.common.storage;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.springframework.core.io.Resource;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
+@Slf4j
 public class FileSystemImageStorageService implements ImageStorageService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "bmp");
@@ -60,8 +62,10 @@ public class FileSystemImageStorageService implements ImageStorageService {
             moveStoredImage(stored, directory.resolve("profile." + stored.extension()));
         } catch (IOException ex) {
             cleanupQuietly(stored.tempPath());
+            log.error("Failed to store profile image: userId={}", userId, ex);
             throw new BadRequestException("Failed to store profile image");
         }
+        log.info("Profile image stored: userId={}", userId);
         return buildUserProfileUrl(userId);
     }
 
@@ -89,8 +93,10 @@ public class FileSystemImageStorageService implements ImageStorageService {
             moveStoredImage(stored, directory.resolve("primary." + stored.extension()));
         } catch (IOException ex) {
             cleanupQuietly(stored.tempPath());
+            log.error("Failed to store primary image: productId={}, variationId={}", productId, variationId, ex);
             throw new BadRequestException("Failed to store primary image");
         }
+        log.info("Variation primary image stored: productId={}, variationId={}", productId, variationId);
     }
 
     @Override
@@ -101,6 +107,7 @@ public class FileSystemImageStorageService implements ImageStorageService {
         try {
             if (files == null || files.isEmpty()) {
                 deleteDirectory(secondaryDirectory);
+                log.info("Variation secondary images cleared: productId={}, variationId={}", productId, variationId);
                 return;
             }
 
@@ -125,8 +132,10 @@ public class FileSystemImageStorageService implements ImageStorageService {
             moveDirectory(tempDirectory, secondaryDirectory);
         } catch (IOException ex) {
             deleteDirectoryQuietly(tempDirectory);
+            log.error("Failed to store secondary images: productId={}, variationId={}", productId, variationId, ex);
             throw new BadRequestException("Failed to store secondary images");
         }
+        log.info("Variation secondary images replaced: productId={}, variationId={}, count={}", productId, variationId, files.size());
     }
 
     @Override

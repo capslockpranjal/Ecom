@@ -1,6 +1,7 @@
 package org.example.zenvybackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.storage.ImageStorageService;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final CustomerRepository customerRepository;
@@ -100,8 +102,10 @@ public class UserServiceImpl implements UserService {
 
         if (profileImage != null && !profileImage.isEmpty()) {
             imageStorageService.storeUserProfileImage(user.getId(), profileImage);
+            log.info("Customer profile image updated: userId={}", user.getId());
         }
 
+        log.info("Customer profile updated: userId={}", user.getId());
         return UserMapper.toProfileResponse(customer, imageStorageService.getUserProfileImageUrl(user.getId()));
     }
 
@@ -158,6 +162,7 @@ public class UserServiceImpl implements UserService {
 
         if (profileImage != null && !profileImage.isEmpty()) {
             imageStorageService.storeUserProfileImage(user.getId(), profileImage);
+            log.info("Seller profile image updated: userId={}", user.getId());
         }
 
         Seller refreshed = sellerRepository.findByIdWithUserAndAddresses(user.getId())
@@ -169,6 +174,7 @@ public class UserServiceImpl implements UserService {
                 .findFirst()
                 .orElse(null);
 
+        log.info("Seller profile updated: userId={}", user.getId());
         return UserMapper.toSellerProfileResponse(refreshed, address, imageStorageService.getUserProfileImageUrl(user.getId()));
     }
 
@@ -208,5 +214,6 @@ public class UserServiceImpl implements UserService {
         );
 
         tokenRepository.deleteByUserAndType(user, TokenType.REFRESH);
+        log.info("Password changed: userId={}", user.getId());
     }
 }

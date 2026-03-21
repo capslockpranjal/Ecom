@@ -1,6 +1,7 @@
 package org.example.zenvybackend.admin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
 import org.example.zenvybackend.admin.dto.AdminProductCategoryResponse;
 import org.example.zenvybackend.admin.dto.AdminProductResponse;
@@ -37,6 +38,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
@@ -169,6 +171,7 @@ public class AdminServiceImpl implements AdminService {
                 "Account Activated",
                 "Your customer account has been activated by the admin."
         );
+        log.info("Customer activated: userId={}", userId);
     }
 
     @Override
@@ -189,6 +192,7 @@ public class AdminServiceImpl implements AdminService {
                 "Account Deactivated",
                 "Your customer account has been deactivated by the admin."
         );
+        log.info("Customer deactivated: userId={}", userId);
     }
 
     @Override
@@ -217,6 +221,7 @@ public class AdminServiceImpl implements AdminService {
                 "Seller Account Activated",
                 "Your seller account has been activated by the admin."
         );
+        log.info("Seller activated: userId={}", userId);
     }
 
     @Override
@@ -245,6 +250,7 @@ public class AdminServiceImpl implements AdminService {
                 "Seller Account Deactivated",
                 "Your seller account has been deactivated by the admin."
         );
+        log.info("Seller deactivated: userId={}", userId);
     }
 
     @Override
@@ -298,6 +304,7 @@ public class AdminServiceImpl implements AdminService {
                 "Product Activated",
                 buildProductStatusEmailBody(product, true)
         );
+        log.info("Product activated: productId={}", productId);
     }
 
     @Override
@@ -317,6 +324,7 @@ public class AdminServiceImpl implements AdminService {
                 "Product Deactivated",
                 buildProductStatusEmailBody(product, false)
         );
+        log.info("Product deactivated: productId={}", productId);
     }
 
     private AdminProductResponse mapProduct(Product product) {

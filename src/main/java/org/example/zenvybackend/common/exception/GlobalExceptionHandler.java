@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        log.error("Bad Request Error: {}", ex.getMessage());
+        log.warn("Bad request: {}", ex.getMessage());
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -85,7 +85,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        log.error("Resource Not Found: {}", ex.getMessage());
+        log.warn("Resource not found: {}", ex.getMessage());
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        log.error("URL Not Found: {}", ex.getRequestURL());
+        log.warn("URL not found: {}", ex.getRequestURL());
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

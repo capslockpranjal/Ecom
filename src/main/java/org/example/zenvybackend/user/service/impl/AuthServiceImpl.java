@@ -2,6 +2,7 @@ package org.example.zenvybackend.user.service.impl;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.constants.RoleConstants;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.util.PasswordValidator;
@@ -40,6 +41,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -125,6 +127,8 @@ public class AuthServiceImpl implements AuthService {
         if (!Boolean.TRUE.equals(user.getIsActive())) {
             generateActivationToken(user);
         }
+
+        log.info("Customer registered: email={}", user.getEmail());
     }
 
     @Transactional
@@ -218,6 +222,8 @@ public class AuthServiceImpl implements AuthService {
                 "Seller Registration Received",
                 "Your seller account is under review. You will be notified once approved."
         );
+
+        log.info("Seller registration submitted: email={}, companyName={}", user.getEmail(), seller.getCompanyName());
     }
 
     private void addRoleIfMissing(User user, String authority) {
@@ -273,6 +279,7 @@ public class AuthServiceImpl implements AuthService {
         if (activationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             tokenRepository.delete(activationToken);
             generateActivationToken(user);
+            log.warn("Activation token expired, regenerated: userId={}", user.getId());
             throw new BadRequestException("Activation token expired. A new activation link has been sent.");
         }
 
@@ -286,6 +293,8 @@ public class AuthServiceImpl implements AuthService {
                 "Account Activated",
                 "Your account has been successfully activated."
         );
+
+        log.info("Account activated: userId={}", user.getId());
     }
 
     @Transactional(noRollbackFor = BadRequestException.class)
@@ -324,6 +333,7 @@ public class AuthServiceImpl implements AuthService {
             if (user.getInvalidAttemptCount() >= MAX_LOGIN_ATTEMPTS) {
                 user.setIsLocked(true);
                 user.setLockTime(LocalDateTime.now());
+                log.warn("Account locked after repeated failures: userId={}", user.getId());
 
                 emailService.sendEmail(
                         user.getEmail(),
@@ -334,6 +344,7 @@ public class AuthServiceImpl implements AuthService {
 
             userRepository.save(user);
 
+            log.warn("Login failed: email={}", request.getEmail());
             throw new BadRequestException("Invalid email or password");
         }
 
@@ -358,6 +369,7 @@ public class AuthServiceImpl implements AuthService {
 
         tokenRepository.save(token);
 
+        log.info("Login successful: userId={}", user.getId());
         return new AuthResponse(accessToken, refreshToken);
     }
 
@@ -390,6 +402,8 @@ public class AuthServiceImpl implements AuthService {
                 "Reset Password",
                 "Reset Link: http://localhost:8080/auth/reset-password?token=" + tokenValue
         );
+
+        log.info("Password reset requested: userId={}", user.getId());
     }
 
     @Transactional
@@ -442,6 +456,8 @@ public class AuthServiceImpl implements AuthService {
                 "Password Updated",
                 "Your password has been successfully updated. If this was not you, please contact support immediately."
         );
+
+        log.info("Password reset successful: userId={}", user.getId());
     }
 
     @Transactional
@@ -477,6 +493,7 @@ public class AuthServiceImpl implements AuthService {
                 new ArrayList<>(user.getRoles())
         );
 
+        log.info("Refresh token rotated: userId={}", user.getId());
         return new AuthResponse(accessToken, newRefreshToken);
     }
 
@@ -527,5 +544,6 @@ public class AuthServiceImpl implements AuthService {
 
         String email = jwtUtil.extractEmail(token);
         tokenRepository.deleteByUserEmailAndType(email, TokenType.REFRESH);
+        log.info("Logout successful: email={}", email);
     }
 }

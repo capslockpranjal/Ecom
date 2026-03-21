@@ -2,6 +2,7 @@ package org.example.zenvybackend.category.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.exception.UnauthorizedException;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
@@ -74,6 +76,8 @@ public class CategoryServiceImpl implements CategoryService {
 
         categoryRepository.save(category);
 
+        log.info("Category created: categoryId={}, name={}, parentId={}",
+                category.getId(), category.getName(), parent != null ? parent.getId() : null);
         return category.getId();
     }
 
@@ -134,6 +138,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(request.getName().trim());
 
         categoryRepository.save(category);
+        log.info("Category updated: categoryId={}, newName={}", category.getId(), category.getName());
     }
 
 
@@ -152,6 +157,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         fieldRepository.save(field);
 
+        log.info("Metadata field created: fieldId={}, name={}", field.getId(), field.getName());
         return field.getId();
     }
 
@@ -207,6 +213,7 @@ public class CategoryServiceImpl implements CategoryService {
                 entity.setMetadataValues(String.join(",", oldValues));
 
                 valuesRepository.save(entity);
+                log.info("Metadata values updated: categoryId={}, fieldId={}", category.getId(), field.getId());
 
             } else {
 
@@ -225,6 +232,7 @@ public class CategoryServiceImpl implements CategoryService {
                                 .build();
 
                 valuesRepository.save(entity);
+                log.info("Metadata values added: categoryId={}, fieldId={}", category.getId(), field.getId());
             }
         }
     }
