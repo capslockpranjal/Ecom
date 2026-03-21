@@ -5,6 +5,7 @@ import org.example.zenvybackend.admin.dto.AdminCustomerResponse;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.admin.dto.AdminSellerResponse;
 import org.example.zenvybackend.admin.service.AdminService;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.common.response.PagedResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,10 +20,11 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final MessageResolver messageResolver;
 
     @GetMapping("/test")
     public String test() {
-        return "Admin access granted";
+        return messageResolver.get("response.admin.access_granted", "Admin access granted");
     }
 
     @GetMapping("/customers")
@@ -53,28 +55,28 @@ public class AdminController {
     public ApiResponse<Void> activateCustomer(@PathVariable UUID id) {
 
         adminService.activateCustomer(id);
-        return ApiResponse.success("Customer activated successfully");
+        return ApiResponse.success(messageResolver.get("response.customer.activated", "Customer activated successfully"));
     }
 
     @PatchMapping("/customers/{id}/deactivate")
     public ApiResponse<Void> deactivateCustomer(@PathVariable UUID id) {
 
         adminService.deactivateCustomer(id);
-        return ApiResponse.success("Customer deactivated successfully");
+        return ApiResponse.success(messageResolver.get("response.customer.deactivated", "Customer deactivated successfully"));
     }
 
     @PatchMapping("/sellers/{id}/activate")
     public ApiResponse<Void> activateSeller(@PathVariable UUID id) {
 
         adminService.activateSeller(id);
-        return ApiResponse.success("Seller activated successfully");
+        return ApiResponse.success(messageResolver.get("response.seller.activated", "Seller activated successfully"));
     }
 
     @PatchMapping("/sellers/{id}/deactivate")
     public ApiResponse<Void> deactivateSeller(@PathVariable UUID id) {
 
         adminService.deactivateSeller(id);
-        return ApiResponse.success("Seller deactivated successfully");
+        return ApiResponse.success(messageResolver.get("response.seller.deactivated", "Seller deactivated successfully"));
     }
 
     @GetMapping("/products")
@@ -94,7 +96,7 @@ public class AdminController {
         dto.setOrder(order);
 
         return ApiResponse.success(
-                "Product list",
+                messageResolver.get("response.product.list", "Product list"),
                 adminService.getProducts(productId, sellerId, categoryId, dto)
         );
     }
@@ -102,12 +104,12 @@ public class AdminController {
     @PutMapping("/products/{id}/activate")
     public ApiResponse<Void> activateProduct(@PathVariable UUID id) {
         adminService.activateProduct(id);
-        return ApiResponse.success("Product activated successfully");
+        return ApiResponse.success(messageResolver.get("response.product.activated", "Product activated successfully"));
     }
 
     @PutMapping("/products/{id}/deactivate")
     public ApiResponse<Void> deactivateProduct(@PathVariable UUID id) {
         adminService.deactivateProduct(id);
-        return ApiResponse.success("Product deactivated successfully");
+        return ApiResponse.success(messageResolver.get("response.product.deactivated", "Product deactivated successfully"));
     }
 }

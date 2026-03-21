@@ -2,6 +2,7 @@ package org.example.zenvybackend.product.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.product.dto.response.CustomerProductDetailResponse;
 import org.example.zenvybackend.product.service.ProductService;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class CustomerProductController {
 
     private final ProductService productService;
+    private final MessageResolver messageResolver;
 
     @GetMapping
     public ApiResponse<?> getProducts(
@@ -37,7 +39,7 @@ public class CustomerProductController {
         dto.setOrder(order);
 
         return ApiResponse.success(
-                "Product list",
+                messageResolver.get("response.product.list", "Product list"),
                 productService.getCustomerProducts(categoryId, dto)
         );
     }
@@ -45,7 +47,7 @@ public class CustomerProductController {
     @GetMapping("/{productId}")
     public ApiResponse<CustomerProductDetailResponse> getProduct(@PathVariable UUID productId) {
         return ApiResponse.success(
-                "Product details",
+                messageResolver.get("response.product.details", "Product details"),
                 productService.getCustomerProduct(productId)
         );
     }
@@ -65,7 +67,7 @@ public class CustomerProductController {
         dto.setOrder(order);
 
         return ApiResponse.success(
-                "Similar products",
+                messageResolver.get("response.product.similar", "Similar products"),
                 productService.getSimilarCustomerProducts(productId, dto)
         );
     }

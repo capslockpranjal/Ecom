@@ -2,6 +2,7 @@ package org.example.zenvybackend.user.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.ChangePasswordRequest;
 import org.example.zenvybackend.user.dto.request.UpdateAddressRequest;
@@ -23,12 +24,13 @@ public class SellerController {
 
     private final UserService userService;
     private final AddressService addressService;
+    private final MessageResolver messageResolver;
 
     @GetMapping("/profile")
     public ApiResponse<SellerProfileResponse> getProfile() {
 
         return ApiResponse.success(
-                "Profile fetched successfully",
+                messageResolver.get("response.profile.fetched", "Profile fetched successfully"),
                 userService.getSellerProfile()
         );
     }
@@ -39,7 +41,7 @@ public class SellerController {
     ) {
 
         return ApiResponse.success(
-                "Profile updated successfully",
+                messageResolver.get("response.profile.updated", "Profile updated successfully"),
                 userService.updateSellerProfile(request)
         );
     }
@@ -51,7 +53,7 @@ public class SellerController {
     ) {
 
         return ApiResponse.success(
-                "Profile updated successfully",
+                messageResolver.get("response.profile.updated", "Profile updated successfully"),
                 userService.updateSellerProfile(request, profileImage)
         );
     }
@@ -63,7 +65,7 @@ public class SellerController {
 
         userService.changePassword(request);
 
-        return ApiResponse.success("Password updated successfully");
+        return ApiResponse.success(messageResolver.get("response.password.updated", "Password updated successfully"));
     }
 
     @PatchMapping("/address")
@@ -72,7 +74,7 @@ public class SellerController {
     ) {
 
         return ApiResponse.success(
-                "Address updated",
+                messageResolver.get("response.address.updated", "Address updated"),
                 addressService.updateSellerAddress(request)
         );
     }

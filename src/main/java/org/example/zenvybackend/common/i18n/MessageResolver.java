@@ -1,0 +1,99 @@
+package org.example.zenvybackend.common.i18n;
+
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+@Component
+public class MessageResolver {
+
+    private static final Map<String, String> EXCEPTION_MESSAGE_CODES = Map.ofEntries(
+            Map.entry("No customers registered", "error.admin.customers.none"),
+            Map.entry("No sellers registered", "error.admin.sellers.none"),
+            Map.entry("Customer account already active", "error.customer.already_active"),
+            Map.entry("Customer account already deactivated", "error.customer.already_deactivated"),
+            Map.entry("User is not a seller", "error.seller.invalid_user"),
+            Map.entry("Seller account already active", "error.seller.already_active"),
+            Map.entry("Seller account already deactivated", "error.seller.already_deactivated"),
+            Map.entry("Product not found", "error.product.not_found"),
+            Map.entry("Product is already active", "error.product.already_active"),
+            Map.entry("Product is already inactive", "error.product.already_inactive"),
+            Map.entry("Category must be a leaf category", "error.category.must_be_leaf"),
+            Map.entry("Product already exists", "error.product.already_exists"),
+            Map.entry("Product is not active", "error.product.not_active"),
+            Map.entry("Invalid metadata format", "error.metadata.invalid_format"),
+            Map.entry("Variation already exists", "error.variation.already_exists"),
+            Map.entry("Metadata structure must be same across variations", "error.metadata.structure_mismatch_variations"),
+            Map.entry("At least one field must be provided for update", "error.update.no_fields"),
+            Map.entry("Quantity available must be 0 or more", "error.variation.quantity.invalid"),
+            Map.entry("Price must be 0 or more", "error.variation.price.invalid"),
+            Map.entry("Product already deleted", "error.product.already_deleted"),
+            Map.entry("Variation does not belong to this product", "error.variation.not_in_product"),
+            Map.entry("Product is not available", "error.product.not_available"),
+            Map.entry("Product has no active variations", "error.product.no_active_variations"),
+            Map.entry("Seller account is not activated", "error.seller.not_activated"),
+            Map.entry("Customer account is not activated", "error.customer.not_activated"),
+            Map.entry("Not your product", "error.product.not_owned"),
+            Map.entry("Product is deleted", "error.product.deleted"),
+            Map.entry("Not your product variation", "error.variation.not_owned"),
+            Map.entry("At least one metadata field is required", "error.metadata.field_required"),
+            Map.entry("Invalid metadata field", "error.metadata.field_invalid"),
+            Map.entry("Metadata structure mismatch", "error.metadata.structure_mismatch"),
+            Map.entry("Invalid primary image format", "error.image.primary.invalid_format"),
+            Map.entry("Category name cannot be empty", "error.category.name.empty"),
+            Map.entry("Category already exists under this parent", "error.category.already_exists_under_parent"),
+            Map.entry("Field name cannot be empty", "error.metadata.field_name.empty"),
+            Map.entry("Metadata field already exists", "error.metadata.field_already_exists"),
+            Map.entry("At least one value must be provided", "error.metadata.values.required"),
+            Map.entry("Duplicate values are not allowed", "error.metadata.values.duplicate"),
+            Map.entry("CategoryId is required", "error.category.id.required"),
+            Map.entry("Seller can have only one address", "error.address.single_for_seller"),
+            Map.entry("Account is locked", "error.account.locked"),
+            Map.entry("Old password is incorrect", "error.password.old_incorrect"),
+            Map.entry("Passwords do not match", "error.password.mismatch"),
+            Map.entry("New password must be different", "error.password.new_must_differ"),
+            Map.entry("Email already registered. Please login.", "error.email.already_registered"),
+            Map.entry("GST already registered", "error.seller.gst.already_registered"),
+            Map.entry("Company name already registered", "error.seller.company.already_registered"),
+            Map.entry("Activation token expired. A new activation link has been sent.", "error.activation.expired_resent"),
+            Map.entry("Account not activated", "error.account.not_activated"),
+            Map.entry("Password expired. Please reset your password.", "error.password.expired"),
+            Map.entry("Invalid email or password", "error.auth.invalid_credentials"),
+            Map.entry("Account is not activated. Please activate your account first.", "error.account.not_activated_first"),
+            Map.entry("Reset token expired", "error.reset.expired"),
+            Map.entry("Too many attempts. Request a new reset link.", "error.reset.too_many_attempts"),
+            Map.entry("Password does not meet policy requirements", "error.password.policy"),
+            Map.entry("Refresh token expired", "error.refresh.expired"),
+            Map.entry("Account already activated", "error.account.already_activated"),
+            Map.entry("Token missing", "error.token.missing"),
+            Map.entry("Failed to store profile image", "error.image.profile.store_failed"),
+            Map.entry("Image not found", "error.image.not_found"),
+            Map.entry("Failed to store primary image", "error.image.primary.store_failed"),
+            Map.entry("Failed to store secondary images", "error.image.secondary.store_failed"),
+            Map.entry("Invalid image format", "error.image.invalid_format"),
+            Map.entry("Invalid image content type", "error.image.invalid_content_type"),
+            Map.entry("Image size exceeds allowed limit", "error.image.size_exceeded"),
+            Map.entry("Failed to process image", "error.image.process_failed"),
+            Map.entry("Invalid sort field", "error.page.sort.invalid")
+    );
+
+    private final MessageSource messageSource;
+
+    public MessageResolver(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
+    public String get(String code, String defaultMessage, Object... args) {
+        return messageSource.getMessage(code, args, defaultMessage, LocaleContextHolder.getLocale());
+    }
+
+    public String resolveExceptionMessage(String message) {
+        String code = EXCEPTION_MESSAGE_CODES.get(message);
+        if (code == null) {
+            return message;
+        }
+        return get(code, message);
+    }
+}

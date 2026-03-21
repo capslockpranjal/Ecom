@@ -3,6 +3,7 @@ package org.example.zenvybackend.product.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.product.dto.request.AddProductRequest;
 import org.example.zenvybackend.product.dto.request.AddProductVariationRequest;
@@ -22,18 +23,22 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
+    private final MessageResolver messageResolver;
 
     @PostMapping
     @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<UUID> addProduct(@Valid @RequestBody AddProductRequest request) {
-        return ApiResponse.success("Product created", productService.addProduct(request));
+        return ApiResponse.success(
+                messageResolver.get("response.product.created", "Product created"),
+                productService.addProduct(request)
+        );
     }
 
     @PostMapping(value = "/variation", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<Void> addVariation(@Valid @RequestBody AddProductVariationRequest request) {
         productService.addVariation(request);
-        return ApiResponse.success("Variation added", null);
+        return ApiResponse.success(messageResolver.get("response.variation.added", "Variation added"), null);
     }
 
     @PostMapping(value = "/variation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -44,7 +49,7 @@ public class ProductController {
             @RequestPart(value = "secondaryImages", required = false) java.util.List<MultipartFile> secondaryImages
     ) {
         productService.addVariation(request, primaryImage, secondaryImages);
-        return ApiResponse.success("Variation added", null);
+        return ApiResponse.success(messageResolver.get("response.variation.added", "Variation added"), null);
     }
 
     @PutMapping("/{productId}")
@@ -54,7 +59,7 @@ public class ProductController {
             @Valid @RequestBody UpdateProductRequest request
     ) {
         productService.updateProduct(productId, request);
-        return ApiResponse.success("Product updated successfully", null);
+        return ApiResponse.success(messageResolver.get("response.product.updated", "Product updated successfully"), null);
     }
 
     @PutMapping(value = "/variation/{variationId}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -64,7 +69,10 @@ public class ProductController {
             @Valid @RequestBody UpdateProductVariationRequest request
     ) {
         productService.updateVariation(variationId, request);
-        return ApiResponse.success("Product variation updated successfully", null);
+        return ApiResponse.success(
+                messageResolver.get("response.product.variation.updated", "Product variation updated successfully"),
+                null
+        );
     }
 
     @PutMapping(value = "/variation/{variationId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -76,7 +84,10 @@ public class ProductController {
             @RequestPart(value = "secondaryImages", required = false) java.util.List<MultipartFile> secondaryImages
     ) {
         productService.updateVariation(variationId, request, primaryImage, secondaryImages);
-        return ApiResponse.success("Product variation updated successfully", null);
+        return ApiResponse.success(
+                messageResolver.get("response.product.variation.updated", "Product variation updated successfully"),
+                null
+        );
     }
 
     @DeleteMapping("/{productId}")
@@ -85,7 +96,7 @@ public class ProductController {
 
         productService.deleteProduct(productId);
 
-        return ApiResponse.success("Product deleted successfully", null);
+        return ApiResponse.success(messageResolver.get("response.product.deleted", "Product deleted successfully"), null);
     }
 
     @GetMapping
@@ -103,7 +114,7 @@ public class ProductController {
         PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
-                "Product list",
+                messageResolver.get("response.product.list", "Product list"),
                 productService.getProducts(productId, dto)
         );
     }
@@ -125,7 +136,7 @@ public class ProductController {
 
 
         return ApiResponse.success(
-                "Product variation details",
+                messageResolver.get("response.product.variation.details", "Product variation details"),
                 productService.getProductVariations(productId, variationId, dto)
         );
     }

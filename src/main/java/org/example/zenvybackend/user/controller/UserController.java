@@ -2,6 +2,7 @@ package org.example.zenvybackend.user.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.ChangePasswordRequest;
 import org.example.zenvybackend.user.dto.request.UpdateCustomerProfileRequest;
@@ -19,12 +20,13 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final MessageResolver messageResolver;
 
     @GetMapping("/profile")
     public ApiResponse<CustomerProfileResponse> getProfile(){
 
         return ApiResponse.success(
-                "Profile fetched successfully",
+                messageResolver.get("response.profile.fetched", "Profile fetched successfully"),
                 userService.getCustomerProfile()
         );
     }
@@ -34,7 +36,7 @@ public class UserController {
             @Valid @RequestBody UpdateCustomerProfileRequest request){
 
         return ApiResponse.success(
-                "Profile updated successfully",
+                messageResolver.get("response.profile.updated", "Profile updated successfully"),
                 userService.updateCustomerProfile(request)
         );
     }
@@ -46,7 +48,7 @@ public class UserController {
     ) {
 
         return ApiResponse.success(
-                "Profile updated successfully",
+                messageResolver.get("response.profile.updated", "Profile updated successfully"),
                 userService.updateCustomerProfile(request, profileImage)
         );
     }
@@ -57,6 +59,6 @@ public class UserController {
 
         userService.changePassword(request);
 
-        return ApiResponse.success("Password updated successfully");
+        return ApiResponse.success(messageResolver.get("response.password.updated", "Password updated successfully"));
     }
 }

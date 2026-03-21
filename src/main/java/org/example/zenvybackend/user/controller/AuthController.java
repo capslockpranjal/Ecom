@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.common.exception.BadRequestException;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.*;
 import org.example.zenvybackend.user.dto.response.AuthResponse;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final MessageResolver messageResolver;
 
 
 
@@ -27,7 +29,12 @@ public class AuthController {
         authService.registerCustomer(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Customer registered successfully. Activation email sent.")
+                ApiResponse.success(
+                        messageResolver.get(
+                                "response.auth.customer.registered",
+                                "Customer registered successfully. Activation email sent."
+                        )
+                )
         );
     }
 
@@ -40,7 +47,12 @@ public class AuthController {
         authService.registerSeller(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Seller registration submitted. Await admin approval.")
+                ApiResponse.success(
+                        messageResolver.get(
+                                "response.auth.seller.registered",
+                                "Seller registration submitted. Await admin approval."
+                        )
+                )
         );
     }
 
@@ -53,7 +65,7 @@ public class AuthController {
         authService.activateAccount(token);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Account activated successfully")
+                ApiResponse.success(messageResolver.get("response.auth.account.activated", "Account activated successfully"))
         );
     }
 
@@ -66,7 +78,7 @@ public class AuthController {
         AuthResponse token = authService.login(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Login successful", token)
+                ApiResponse.success(messageResolver.get("response.auth.login.success", "Login successful"), token)
         );
     }
 
@@ -77,7 +89,7 @@ public class AuthController {
 
         authService.forgotPassword(request.getEmail());
 
-        return ApiResponse.success("Reset email sent");
+        return ApiResponse.success(messageResolver.get("response.auth.reset_email.sent", "Reset email sent"));
     }
 
 
@@ -86,7 +98,7 @@ public class AuthController {
 
         authService.resetPassword(request.getToken(), request.getPassword(),request.getConfirmPassword());
 
-        return ApiResponse.success("Password reset successful");
+        return ApiResponse.success(messageResolver.get("response.auth.password.reset", "Password reset successful"));
     }
 
 
@@ -95,7 +107,7 @@ public class AuthController {
 
         AuthResponse response = authService.refreshToken(refreshToken);
 
-        return ApiResponse.success("New tokens generated", response);
+        return ApiResponse.success(messageResolver.get("response.auth.tokens.refreshed", "New tokens generated"), response);
     }
 
     @PostMapping("/resend-activation")
@@ -105,7 +117,7 @@ public class AuthController {
 
         authService.resendActivation(request.getEmail());
 
-        return ApiResponse.success("Activation email resent");
+        return ApiResponse.success(messageResolver.get("response.auth.activation.resent", "Activation email resent"));
     }
     @PostMapping("/logout")
     public ApiResponse<String> logout(HttpServletRequest request) {
@@ -120,7 +132,7 @@ public class AuthController {
 
         authService.logout(token);
 
-        return ApiResponse.success("Logout successful", null);
+        return ApiResponse.success(messageResolver.get("response.auth.logout.success", "Logout successful"), null);
     }
 
 }

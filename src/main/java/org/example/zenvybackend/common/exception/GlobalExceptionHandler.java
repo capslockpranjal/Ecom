@@ -2,6 +2,7 @@ package org.example.zenvybackend.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,12 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private final MessageResolver messageResolver;
+
+    public GlobalExceptionHandler(MessageResolver messageResolver) {
+        this.messageResolver = messageResolver;
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(
             BadRequestException ex,
@@ -36,8 +43,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message(ex.getMessage())
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(messageResolver.resolveExceptionMessage(ex.getMessage()))
                 .path(request.getRequestURI())
                 .build();
 
@@ -53,8 +60,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
-                .error("FORBIDDEN")
-                .message(ex.getMessage())
+                .error(messageResolver.get("error.forbidden", "FORBIDDEN"))
+                .message(messageResolver.resolveExceptionMessage(ex.getMessage()))
                 .path(request.getRequestURI())
                 .build();
 
@@ -70,8 +77,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message("Request violates a data constraint")
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(messageResolver.get("error.message.data_constraint", "Request violates a data constraint"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -90,8 +97,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
-                .error("NOT_FOUND")
-                .message(ex.getMessage())
+                .error(messageResolver.get("error.not_found", "NOT_FOUND"))
+                .message(messageResolver.resolveExceptionMessage(ex.getMessage()))
                 .path(request.getRequestURI())
                 .build();
 
@@ -109,8 +116,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
-                .error("NOT_FOUND")
-                .message("URL is not found")
+                .error(messageResolver.get("error.not_found", "NOT_FOUND"))
+                .message(messageResolver.get("error.message.url_not_found", "URL is not found"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -130,8 +137,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error("INTERNAL_SERVER_ERROR")
-                .message("An error occurred within the service")
+                .error(messageResolver.get("error.internal_server_error", "INTERNAL_SERVER_ERROR"))
+                .message(messageResolver.get("error.message.internal", "An error occurred within the service"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -153,8 +160,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("VALIDATION_ERROR")
-                .message("Validation failed")
+                .error(messageResolver.get("error.validation", "VALIDATION_ERROR"))
+                .message(messageResolver.get("error.message.validation", "Validation failed"))
                 .details(details)
                 .path(request.getRequestURI())
                 .build();
@@ -170,8 +177,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
-                .error("FORBIDDEN")
-                .message("You do not have permission to access this resource")
+                .error(messageResolver.get("error.forbidden", "FORBIDDEN"))
+                .message(messageResolver.get("error.message.access_denied", "You do not have permission to access this resource"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -187,8 +194,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.METHOD_NOT_ALLOWED.value())
-                .error("METHOD_NOT_ALLOWED")
-                .message("Wrong HTTP method used to access the API")
+                .error(messageResolver.get("error.method_not_allowed", "METHOD_NOT_ALLOWED"))
+                .message(messageResolver.get("error.message.method_not_allowed", "Wrong HTTP method used to access the API"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -200,18 +207,13 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException ex,
             HttpServletRequest request
     ){
-
-        String message = "Invalid request body";
-
-        if(ex.getMessage().contains("Unrecognized field")){
-            message = "Invalid field in request body";
-        }
-
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message(message)
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(ex.getMessage().contains("Unrecognized field")
+                        ? messageResolver.get("error.message.invalid_field_request_body", "Invalid field in request body")
+                        : messageResolver.get("error.message.invalid_request_body", "Invalid request body"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -226,8 +228,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message("Invalid parameter type (UUID expected)")
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(messageResolver.get("error.message.invalid_parameter_type", "Invalid parameter type (UUID expected)"))
                 .path(request.getRequestURI())
                 .build();
 
@@ -248,8 +250,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("VALIDATION_ERROR")
-                .message("Validation failed")
+                .error(messageResolver.get("error.validation", "VALIDATION_ERROR"))
+                .message(messageResolver.get("error.message.validation", "Validation failed"))
                 .details(details)
                 .path(request.getRequestURI())
                 .build();
@@ -271,8 +273,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("VALIDATION_ERROR")
-                .message("Validation failed")
+                .error(messageResolver.get("error.validation", "VALIDATION_ERROR"))
+                .message(messageResolver.get("error.message.validation", "Validation failed"))
                 .details(details)
                 .path(request.getRequestURI())
                 .build();
@@ -288,8 +290,12 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message(ex.getParameterName() + " parameter is required")
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(messageResolver.get(
+                        "error.message.missing_parameter",
+                        ex.getParameterName() + " parameter is required",
+                        ex.getParameterName()
+                ))
                 .path(request.getRequestURI())
                 .build();
 
@@ -304,8 +310,12 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message(ex.getRequestPartName() + " part is required")
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(messageResolver.get(
+                        "error.message.missing_part",
+                        ex.getRequestPartName() + " part is required",
+                        ex.getRequestPartName()
+                ))
                 .path(request.getRequestURI())
                 .build();
 
@@ -320,8 +330,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("BAD_REQUEST")
-                .message("Invalid multipart request")
+                .error(messageResolver.get("error.bad_request", "BAD_REQUEST"))
+                .message(messageResolver.get("error.message.invalid_multipart", "Invalid multipart request"))
                 .path(request.getRequestURI())
                 .build();
 

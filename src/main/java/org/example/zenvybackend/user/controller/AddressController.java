@@ -2,6 +2,7 @@ package org.example.zenvybackend.user.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.user.dto.request.AddressRequest;
 import org.example.zenvybackend.user.dto.request.UpdateAddressRequest;
@@ -20,20 +21,21 @@ import java.util.UUID;
 public class AddressController {
 
     private final AddressService addressService;
+    private final MessageResolver messageResolver;
 
     @PostMapping
     public ApiResponse<String> addAddress(@Valid @RequestBody AddressRequest request){
 
         addressService.addAddress(request);
 
-        return ApiResponse.success("Address added successfully");
+        return ApiResponse.success(messageResolver.get("response.address.added", "Address added successfully"));
     }
 
     @GetMapping
     public ApiResponse<List<AddressResponse>> getAddresses(){
 
         return ApiResponse.success(
-                "Addresses fetched",
+                messageResolver.get("response.address.list", "Addresses fetched"),
                 addressService.getAddresses()
         );
     }
@@ -44,7 +46,7 @@ public class AddressController {
             @Valid @RequestBody UpdateAddressRequest request){
 
         return ApiResponse.success(
-                "Address updated",
+                messageResolver.get("response.address.updated", "Address updated"),
                 addressService.updateAddress(id, request)
         );
     }
@@ -54,6 +56,6 @@ public class AddressController {
 
         addressService.deleteAddress(id);
 
-        return ApiResponse.success("Address deleted");
+        return ApiResponse.success(messageResolver.get("response.address.deleted", "Address deleted"));
     }
 }

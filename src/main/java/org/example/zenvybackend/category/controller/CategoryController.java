@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
+import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.category.dto.request.*;
 import org.example.zenvybackend.category.service.CategoryService;
@@ -19,6 +20,7 @@ import java.util.UUID;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final MessageResolver messageResolver;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -27,7 +29,7 @@ public class CategoryController {
     ) {
 
         return ApiResponse.success(
-                "Category created",
+                messageResolver.get("response.category.created", "Category created"),
                 categoryService.createCategory(request)
         );
     }
@@ -47,7 +49,7 @@ public class CategoryController {
         PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
-                "Category list",
+                messageResolver.get("response.category.list", "Category list"),
                 categoryService.getCategories(categoryId, dto)
         );
     }
@@ -62,7 +64,7 @@ public class CategoryController {
 
         categoryService.updateCategory(categoryId, request);
 
-        return ApiResponse.success("Category updated", null);
+        return ApiResponse.success(messageResolver.get("response.category.updated", "Category updated"), null);
     }
 
     @GetMapping("/metadata-field")
@@ -79,7 +81,7 @@ public class CategoryController {
         PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
-                "Metadata fields",
+                messageResolver.get("response.category.metadata.fields", "Metadata fields"),
                 categoryService.getMetadataFields(dto)
         );
     }
@@ -90,7 +92,7 @@ public class CategoryController {
             @Valid @RequestBody AddMetadataFieldRequest request) {
 
         return ApiResponse.success(
-                "Metadata field created",
+                messageResolver.get("response.category.metadata.field.created", "Metadata field created"),
                 categoryService.addMetadataField(request.getName())
         );
     }
@@ -103,7 +105,10 @@ public class CategoryController {
 
         categoryService.addMetadataValues(categoryId, requests);
 
-        return ApiResponse.success("Metadata values added", null);
+        return ApiResponse.success(
+                messageResolver.get("response.category.metadata.values.added", "Metadata values added"),
+                null
+        );
     }
 
     @GetMapping("/seller")
@@ -120,7 +125,7 @@ public class CategoryController {
         PageRequestDto dto = buildPageRequest(max, offset, sort, order, query);
 
         return ApiResponse.success(
-                "Seller category list",
+                messageResolver.get("response.category.seller.list", "Seller category list"),
                 categoryService.getCategories(categoryId, dto)
         );
     }
@@ -132,7 +137,7 @@ public class CategoryController {
     ) {
 
         return ApiResponse.success(
-                "Customer categories",
+                messageResolver.get("response.category.customer.list", "Customer categories"),
                 categoryService.getCustomerCategories(categoryId)
         );
     }
@@ -144,7 +149,7 @@ public class CategoryController {
     public ApiResponse<?> getFilters(@PathVariable UUID categoryId) {
 
         return ApiResponse.success(
-                "Filtering data",
+                messageResolver.get("response.category.filtering", "Filtering data"),
                 categoryService.getFilteringData(categoryId)
         );
     }
