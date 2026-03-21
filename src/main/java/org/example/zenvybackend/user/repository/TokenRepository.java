@@ -15,6 +15,8 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
 
     boolean existsByTokenAndType(String token, TokenType type);
 
+    boolean existsByTokenAndTypeAndExpiryDateAfter(String token, TokenType type, LocalDateTime time);
+
     void deleteByUserAndType(User user, TokenType type);
 
     Optional<Token> findByUserAndType(User user, TokenType type);
@@ -23,4 +25,3 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
 
     void deleteByUserEmailAndType(String email, TokenType type);
 }
-

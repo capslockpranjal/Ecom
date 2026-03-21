@@ -406,6 +406,71 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void addVariation_allowsSubsetOfCategoryMetadataFieldsForFirstVariation() throws Exception {
+        UUID productId = UUID.randomUUID();
+        AddProductVariationRequest request = new AddProductVariationRequest();
+        request.setProductId(productId);
+        request.setQuantityAvailable(3);
+        request.setPrice(499.0);
+        request.setPrimaryImageName("image.png");
+        LinkedHashMap<String, String> requestMetadata = new LinkedHashMap<>();
+        requestMetadata.put("color", "Blue");
+        request.setMetadata(requestMetadata);
+
+        Category category = new Category();
+        category.setId(UUID.randomUUID());
+
+        Product product = new Product();
+        product.setId(productId);
+        product.setSeller(seller);
+        product.setCategory(category);
+        product.setIsActive(true);
+        product.setIsDeleted(false);
+
+        CategoryMetadataField sizeField = new CategoryMetadataField();
+        sizeField.setId(UUID.randomUUID());
+        sizeField.setName("size");
+
+        CategoryMetadataField colorField = new CategoryMetadataField();
+        colorField.setId(UUID.randomUUID());
+        colorField.setName("color");
+
+        CategoryMetadataFieldValues sizeValues = CategoryMetadataFieldValues.builder()
+                .id(new CategoryMetadataFieldValuesId(category.getId(), sizeField.getId()))
+                .category(category)
+                .field(sizeField)
+                .metadataValues("S,M,L")
+                .build();
+
+        CategoryMetadataFieldValues colorValues = CategoryMetadataFieldValues.builder()
+                .id(new CategoryMetadataFieldValuesId(category.getId(), colorField.getId()))
+                .category(category)
+                .field(colorField)
+                .metadataValues("Blue,Black")
+                .build();
+
+        LinkedHashMap<String, String> normalizedMetadata = new LinkedHashMap<>();
+        normalizedMetadata.put("color", "Blue");
+
+        when(sellerRepository.findById(sellerId)).thenReturn(Optional.of(seller));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(categoryMetadataFieldValuesRepository.findByCategoryWithField(category))
+                .thenReturn(List.of(sizeValues, colorValues));
+        when(objectMapper.readValue(eq("{\"color\":\"Blue\"}"), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(normalizedMetadata);
+        when(productVariationRepository.existsByProductAndMetadataAndIsDeletedFalse(product, "{\"color\":\"Blue\"}"))
+                .thenReturn(false);
+        when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product))
+                .thenReturn(List.of());
+
+        productService.addVariation(request);
+
+        ArgumentCaptor<ProductVariation> captor = ArgumentCaptor.forClass(ProductVariation.class);
+        verify(productVariationRepository).save(captor.capture());
+        assertEquals("{\"color\":\"Blue\"}", captor.getValue().getMetadata());
+    }
+
+    @Test
     void addVariation_rejectsDuplicateVariationFromConstraintViolation() throws Exception {
         UUID productId = UUID.randomUUID();
         AddProductVariationRequest request = new AddProductVariationRequest();

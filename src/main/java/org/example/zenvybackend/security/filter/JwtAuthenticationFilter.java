@@ -9,6 +9,8 @@ import org.example.zenvybackend.security.handler.CustomAuthenticationEntryPoint;
 import org.example.zenvybackend.security.service.BlacklistCacheService;
 import org.example.zenvybackend.security.service.CustomUserDetails;
 import org.example.zenvybackend.security.util.JwtUtil;
+import org.example.zenvybackend.user.repository.TokenRepository;
+import org.example.zenvybackend.user.token.TokenType;
 import org.example.zenvybackend.user.repository.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
@@ -29,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final BlacklistCacheService blacklistCacheService;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final TokenRepository tokenRepository;
     private final UserRepository userRepository;
 
 
@@ -59,7 +63,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
 
-            if(blacklistCacheService.isBlacklisted(token)){
+            boolean blacklistedInCache = blacklistCacheService.isBlacklisted(token);
+            boolean blacklistedInDb = false;
+
+            if (!blacklistedInCache) {
+                blacklistedInDb = tokenRepository.existsByTokenAndTypeAndExpiryDateAfter(
+                        token,
+                        TokenType.BLACKLISTED,
+                        LocalDateTime.now()
+                );
+
+                if (blacklistedInDb) {
+                    blacklistCacheService.blacklistToken(token);
+                }
+            }
+
+            if(blacklistedInCache || blacklistedInDb){
                 authenticationEntryPoint.commence(request, response,
                         new BadCredentialsException("Token is blacklisted"));
                 return;

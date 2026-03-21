@@ -575,9 +575,6 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        if (metadata.size() != allowedValues.size()) {
-            throw new BadRequestException("Metadata structure mismatch");
-        }
     }
 
     private Set<String> extractAllowedValues(CategoryMetadataFieldValues value) {
