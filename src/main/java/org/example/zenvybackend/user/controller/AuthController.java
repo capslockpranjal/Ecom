@@ -94,7 +94,7 @@ public class AuthController {
 
 
     @PutMapping("/reset-password")
-    public ApiResponse<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ApiResponse<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
 
         authService.resetPassword(request.getToken(), request.getPassword(),request.getConfirmPassword());
 

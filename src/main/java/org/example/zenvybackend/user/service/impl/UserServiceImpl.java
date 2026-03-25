@@ -186,7 +186,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if(user.getIsLocked()){
+        if (Boolean.TRUE.equals(user.getIsLocked())) {
             throw new BadRequestException("Account is locked");
         }
 

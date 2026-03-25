@@ -1,6 +1,5 @@
 package org.example.zenvybackend.category.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.exception.BadRequestException;
@@ -19,6 +18,7 @@ import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,6 +37,7 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
+    @Transactional
     public UUID createCategory(CreateCategoryRequest request) {
 
         if (request.getName() == null || request.getName().isBlank()) {
@@ -115,6 +116,7 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
+    @Transactional
     public void updateCategory(UUID categoryId, UpdateCategoryRequest request) {
 
         if (request.getName() == null || request.getName().isBlank()) {
@@ -143,6 +145,7 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
+    @Transactional
     public UUID addMetadataField(String name) {
 
         if (name == null || name.isBlank())
@@ -178,6 +181,7 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
+    @Transactional
     public void addMetadataValues(UUID categoryId, List<AddMetadataValueRequest> requests) {
 
         Category category = categoryRepository.findById(categoryId)

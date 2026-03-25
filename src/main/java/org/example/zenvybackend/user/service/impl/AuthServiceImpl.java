@@ -313,7 +313,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Password expired. Please reset your password.");
         }
 
-        if (user.getIsLocked()) {
+        if (Boolean.TRUE.equals(user.getIsLocked())) {
 
             if (user.getLockTime() != null &&
                     user.getLockTime().plusMinutes(LOCK_DURATION_MINUTES).isBefore(LocalDateTime.now())) {
