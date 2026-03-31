@@ -1,5 +1,6 @@
 package org.example.zenvybackend.security.util;
 
+import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -12,6 +13,7 @@ import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Component
@@ -22,6 +24,20 @@ public class JwtUtil {
 
     @Value("${jwt.access.expiration}")
     private long accessExpiration;
+
+    @PostConstruct
+    void validateConfiguration() {
+        if (isPlaceholder(secret)) {
+            throw new IllegalStateException("JWT_SECRET must be set to a strong base64-encoded secret.");
+        }
+
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(secret);
+            Keys.hmacShaKeyFor(keyBytes);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("JWT_SECRET must be a valid base64-encoded secret with enough bytes for HMAC signing.", ex);
+        }
+    }
 
     private Key getSigningKey() {
         byte[] keyBytes = Base64.getDecoder().decode(secret);
@@ -86,5 +102,17 @@ public class JwtUtil {
 
     public Date extractIssuedAt(String token) {
         return extractAllClaims(token).getIssuedAt();
+    }
+
+    private boolean isPlaceholder(String value) {
+        if (value == null) {
+            return true;
+        }
+
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.isEmpty()
+                || normalized.equals("change_me")
+                || normalized.equals("your_secret")
+                || normalized.equals("replace-with-a-strong-random-secret");
     }
 }

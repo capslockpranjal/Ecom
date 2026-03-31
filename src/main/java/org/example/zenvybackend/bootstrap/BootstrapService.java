@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -31,6 +32,7 @@ public class BootstrapService {
     private String adminPassword;
     @PostConstruct
     public void init(){
+        validateAdminCredentials();
 
         createRoles();
         createAdmin();
@@ -75,5 +77,31 @@ public class BootstrapService {
         admin.setRoles(new HashSet<>(Set.of(adminRole)));
 
         userRepository.save(admin);
+    }
+
+    private void validateAdminCredentials() {
+        if (isBlank(adminEmail)) {
+            throw new IllegalStateException("ADMIN_EMAIL must be configured.");
+        }
+
+        if (isPlaceholder(adminPassword)) {
+            throw new IllegalStateException("ADMIN_PASSWORD must be set to a non-placeholder value.");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private boolean isPlaceholder(String value) {
+        if (isBlank(value)) {
+            return true;
+        }
+
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.equals("change_me")
+                || normalized.equals("change-me")
+                || normalized.equals("admin")
+                || normalized.equals("password");
     }
 }

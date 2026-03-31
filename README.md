@@ -74,7 +74,7 @@ spring.mail.port=587
 spring.mail.username=YOUR_SMTP_USER
 spring.mail.password=YOUR_SMTP_PASSWORD
 
-jwt.secret=YOUR_BASE64_OR_RANDOM_SECRET
+jwt.secret=YOUR_BASE64_ENCODED_SECRET
 jwt.access.expiration=900000
 jwt.refresh.expiration=86400000
 
@@ -120,14 +120,74 @@ mvn spring-boot:run
 http://localhost:8080
 ```
 
+## Docker
+
+The project includes a multi-stage Docker build and a `docker-compose.yml` for local containerized runs.
+
+### Build the image
+
+```bash
+docker build -t YOUR_DOCKERHUB_USERNAME/zenvy-backend:latest .
+```
+
+### Run the container against an existing MySQL instance
+
+```bash
+docker run -d \
+  --name zenvy-backend \
+  -p 8080:8080 \
+  -v $(pwd)/uploads:/app/uploads \
+  -e SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/zenvy_db \
+  -e SPRING_DATASOURCE_USERNAME=YOUR_DB_USER \
+  -e SPRING_DATASOURCE_PASSWORD=YOUR_DB_PASSWORD \
+  -e SPRING_MAIL_HOST=smtp.gmail.com \
+  -e SPRING_MAIL_PORT=587 \
+  -e SPRING_MAIL_USERNAME=YOUR_SMTP_USER \
+  -e SPRING_MAIL_PASSWORD=YOUR_SMTP_PASSWORD \
+  -e JWT_SECRET=YOUR_BASE64_ENCODED_SECRET \
+  -e JWT_ACCESS_EXPIRATION=900000 \
+  -e JWT_REFRESH_EXPIRATION=86400000 \
+  -e ADMIN_EMAIL=admin@zenvy.com \
+  -e ADMIN_PASSWORD=YOUR_STRONG_ADMIN_PASSWORD \
+  -e APP_IMAGES_BASE_PATH=/app/uploads \
+  pranjalttn/zenvy-backend:latest
+```
+
+### Run with Docker Compose
+
+1. Copy `.env.docker.example` to `.env` and replace every placeholder value with real secrets before startup.
+2. Start the stack:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+
+- `mysql` on port `3306`
+- `app` on port `8080`
+
+Uploads are persisted through the local `uploads/` directory.
+
+### Push to Docker Hub
+
+```bash
+docker login
+docker build -t pranjalttn/zenvy-backend:latest .
+docker push pranjalttn/zenvy-backend:latest
+```
+
+Important:
+
+- Do not publish real credentials inside `application.properties`.
+- Rotate any secrets that were previously committed.
+- Prefer environment variables for database, mail, JWT, and admin credentials.
+- `JWT_SECRET` must be a strong base64-encoded value, not plain text.
+- Set `SPRING_JPA_HIBERNATE_DDL_AUTO` explicitly for the target environment. The compose file uses `update` for local development, while the app default is `none`.
+
 ## API Documentation
 
-Swagger UI is available through springdoc once the app is running. Typical endpoints are:
-
-```text
-http://localhost:8080/swagger-ui.html
-http://localhost:8080/swagger-ui/index.html
-```
+Swagger UI and springdoc API docs are currently disabled by configuration.
 
 ## Authentication and Roles
 
