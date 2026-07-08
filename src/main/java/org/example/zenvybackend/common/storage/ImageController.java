@@ -4,15 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.UUID;
 
 @RestController
@@ -45,14 +43,8 @@ public class ImageController {
     }
 
     private ResponseEntity<Resource> toResponse(Resource resource) {
-        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        try {
-            String contentType = Files.probeContentType(Path.of(resource.getURI()));
-            if (contentType != null) {
-                mediaType = MediaType.parseMediaType(contentType);
-            }
-        } catch (IOException ignored) {
-        }
+        MediaType mediaType = MediaTypeFactory.getMediaType(resource)
+                .orElse(MediaType.APPLICATION_OCTET_STREAM);
 
         return ResponseEntity.ok()
                 .contentType(mediaType)

@@ -83,7 +83,13 @@ admin.password=CHANGE_ME
 
 app.images.base-path=uploads
 app.images.public-base-url=/files
+app.images.storage-type=filesystem
 app.images.max-file-size-bytes=5242880
+
+app.images.s3.bucket=YOUR_S3_BUCKET
+app.images.s3.region=YOUR_AWS_REGION
+app.images.s3.public-base-url=https://YOUR_S3_BUCKET.s3.YOUR_AWS_REGION.amazonaws.com
+app.images.s3.endpoint=
 ```
 
 Notes:
@@ -91,6 +97,8 @@ Notes:
 - The application currently auto-creates roles and an admin user at startup.
 - Hibernate DDL mode is set to `update`.
 - Uploaded files are stored on the local filesystem under `uploads/`.
+- Set `app.images.storage-type=s3` to store images in Amazon S3 instead of the local filesystem.
+- When S3 storage is enabled, provide AWS credentials through the default AWS credential chain, preferably via an IAM role in production.
 
 ## Running Locally
 
@@ -119,6 +127,26 @@ mvn spring-boot:run
 ```text
 http://localhost:8080
 ```
+
+### Switch Image Storage To S3
+
+1. Set the following environment variables:
+
+```bash
+APP_IMAGES_STORAGE_TYPE=s3
+APP_IMAGES_S3_BUCKET=YOUR_S3_BUCKET
+APP_IMAGES_S3_REGION=YOUR_AWS_REGION
+APP_IMAGES_S3_PUBLIC_BASE_URL=https://YOUR_S3_BUCKET.s3.YOUR_AWS_REGION.amazonaws.com
+```
+
+2. Provide AWS credentials:
+
+```bash
+AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY
+AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
+```
+
+3. Ensure the bucket policy allows reads for the image URLs you return to clients, or use a CDN/public bucket URL in `APP_IMAGES_S3_PUBLIC_BASE_URL`.
 
 ## Docker
 
@@ -169,6 +197,8 @@ This starts:
 
 Uploads are persisted through the local `uploads/` directory.
 
+If you switch to S3 storage, set `APP_IMAGES_STORAGE_TYPE=s3` and the `APP_IMAGES_S3_*` variables in `.env`. The local `uploads/` volume will then be unused.
+
 ### Push to Docker Hub
 
 ```bash
@@ -184,6 +214,7 @@ Important:
 - Prefer environment variables for database, mail, JWT, and admin credentials.
 - `JWT_SECRET` must be a strong base64-encoded value, not plain text.
 - Set `SPRING_JPA_HIBERNATE_DDL_AUTO` explicitly for the target environment. The compose file uses `update` for local development, while the app default is `none`.
+- For S3 storage, prefer IAM roles over static AWS access keys in production.
 
 ## API Documentation
 

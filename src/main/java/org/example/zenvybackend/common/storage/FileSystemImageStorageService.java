@@ -3,6 +3,7 @@ package org.example.zenvybackend.common.storage;
 import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.stream.Stream;
 
 @Service
 @Slf4j
+@ConditionalOnProperty(name = "app.images.storage-type", havingValue = "filesystem", matchIfMissing = true)
 public class FileSystemImageStorageService implements ImageStorageService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "bmp");
