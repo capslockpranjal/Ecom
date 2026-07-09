@@ -46,4 +46,10 @@ public class OrderItem extends BaseEntity {
 
     @Column(nullable = false)
     private Double lineTotal;
+
+    @Column(nullable = false)
+    private Boolean isCancellable;
+
+    @Column(nullable = false)
+    private Boolean isReturnable;
 }

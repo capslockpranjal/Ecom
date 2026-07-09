@@ -14,6 +14,7 @@ import org.example.zenvybackend.common.exception.UnauthorizedException;
 import org.example.zenvybackend.common.storage.ImageStorageService;
 import org.example.zenvybackend.product.dto.request.AddProductRequest;
 import org.example.zenvybackend.product.dto.request.AddProductVariationRequest;
+import org.example.zenvybackend.product.dto.request.CustomerProductFilterDto;
 import org.example.zenvybackend.product.dto.request.UpdateProductRequest;
 import org.example.zenvybackend.product.dto.request.UpdateProductVariationRequest;
 import org.example.zenvybackend.product.dto.response.CustomerProductDetailResponse;
@@ -1293,7 +1294,7 @@ class ProductServiceImplTest {
         when(imageStorageService.getVariationPrimaryImageUrl(product.getId(), anotherVariation.getId()))
                 .thenReturn("/files/products/" + product.getId() + "/variations/" + anotherVariation.getId() + "/primary");
 
-        Object result = productService.getCustomerProducts(categoryId, dto);
+        Object result = productService.getCustomerProducts(categoryId, dto, new CustomerProductFilterDto());
 
         Page<?> resultPage = (Page<?>) result;
         assertEquals(1, resultPage.getTotalElements());
@@ -1316,7 +1317,7 @@ class ProductServiceImplTest {
         when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> productService.getCustomerProducts(categoryId, new PageRequestDto()));
+        assertThrows(ResourceNotFoundException.class, () -> productService.getCustomerProducts(categoryId, new PageRequestDto(), new CustomerProductFilterDto()));
     }
 
     @Test
@@ -1326,7 +1327,7 @@ class ProductServiceImplTest {
 
         when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
 
-        assertThrows(UnauthorizedException.class, () -> productService.getCustomerProducts(categoryId, new PageRequestDto()));
+        assertThrows(UnauthorizedException.class, () -> productService.getCustomerProducts(categoryId, new PageRequestDto(), new CustomerProductFilterDto()));
     }
 
     @Test

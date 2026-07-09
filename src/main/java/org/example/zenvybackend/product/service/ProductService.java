@@ -3,6 +3,7 @@ package org.example.zenvybackend.product.service;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.product.dto.request.AddProductRequest;
 import org.example.zenvybackend.product.dto.request.AddProductVariationRequest;
+import org.example.zenvybackend.product.dto.request.CustomerProductFilterDto;
 import org.example.zenvybackend.product.dto.request.UpdateProductRequest;
 import org.example.zenvybackend.product.dto.request.UpdateProductVariationRequest;
 import org.example.zenvybackend.product.dto.response.CustomerProductDetailResponse;
@@ -31,7 +32,7 @@ public interface ProductService {
 
     CustomerProductDetailResponse getCustomerProduct(UUID productId);
 
-    Object getCustomerProducts(UUID categoryId, PageRequestDto dto);
+    Object getCustomerProducts(UUID categoryId, PageRequestDto dto, CustomerProductFilterDto filter);
 
     Object getSimilarCustomerProducts(UUID productId, PageRequestDto dto);
 }

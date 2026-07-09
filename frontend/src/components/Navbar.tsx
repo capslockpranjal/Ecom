@@ -42,17 +42,48 @@ export function Navbar() {
                   <Link href="/orders" className="hover:text-primary">
                     Orders
                   </Link>
+                  <Link href="/returns" className="hover:text-primary">
+                    Returns
+                  </Link>
+                  <Link href="/profile" className="hover:text-primary">
+                    Profile
+                  </Link>
+                  <Link href="/addresses" className="hover:text-primary">
+                    Addresses
+                  </Link>
                 </>
               )}
               {isSeller() && (
-                <Link href="/seller/orders" className="hover:text-primary">
-                  Seller
-                </Link>
+                <>
+                  <Link href="/seller/products" className="hover:text-primary">
+                    Products
+                  </Link>
+                  <Link href="/seller/orders" className="hover:text-primary">
+                    Orders
+                  </Link>
+                  <Link href="/seller/returns" className="hover:text-primary">
+                    Returns
+                  </Link>
+                </>
               )}
               {isAdmin() && (
-                <Link href="/admin/orders" className="hover:text-primary">
-                  Admin
-                </Link>
+                <>
+                  <Link href="/admin/customers" className="hover:text-primary">
+                    Customers
+                  </Link>
+                  <Link href="/admin/sellers" className="hover:text-primary">
+                    Sellers
+                  </Link>
+                  <Link href="/admin/products" className="hover:text-primary">
+                    Products
+                  </Link>
+                  <Link href="/admin/categories" className="hover:text-primary">
+                    Categories
+                  </Link>
+                  <Link href="/admin/orders" className="hover:text-primary">
+                    Orders
+                  </Link>
+                </>
               )}
               {roles.length > 0 && (
                 <span className="hidden text-xs text-slate-500 sm:inline">

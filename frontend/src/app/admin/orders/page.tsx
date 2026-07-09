@@ -34,7 +34,15 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Admin — All Orders</h1>
+      <div className="flex flex-wrap items-center gap-4">
+        <h1 className="text-3xl font-bold">Admin — All Orders</h1>
+        <nav className="flex gap-3 text-sm">
+          <Link href="/admin/customers" className="text-primary">Customers</Link>
+          <Link href="/admin/sellers" className="text-primary">Sellers</Link>
+          <Link href="/admin/products" className="text-primary">Products</Link>
+          <Link href="/admin/categories" className="text-primary">Categories</Link>
+        </nav>
+      </div>
       {error && <p className="text-red-600">{error}</p>}
 
       {orders.length === 0 ? (

@@ -84,6 +84,7 @@ public class MessageResolver {
             Map.entry("Order is already cancelled", "error.order.already_cancelled"),
             Map.entry("Completed orders cannot be cancelled", "error.order.cannot_cancel_completed"),
             Map.entry("Order cannot be cancelled after seller confirmation", "error.order.cannot_cancel_after_confirmation"),
+            Map.entry("Order contains non-cancellable items", "error.order.not_cancellable"),
             Map.entry("Order is cancelled", "error.order.cancelled"),
             Map.entry("Invalid seller order status transition", "error.order.invalid_status_transition"),
             Map.entry("Online payment is not supported yet", "error.payment.online_not_supported"),
@@ -94,7 +95,20 @@ public class MessageResolver {
             Map.entry("Payment is already completed", "error.payment.already_completed"),
             Map.entry("Payment confirmation is only required for online orders", "error.payment.confirm_online_only"),
             Map.entry("Payment cannot be confirmed for this order", "error.payment.cannot_confirm"),
-            Map.entry("Order payment is not completed", "error.payment.not_completed")
+            Map.entry("Order payment is not completed", "error.payment.not_completed"),
+            Map.entry("Online payment gateway is not configured", "error.payment.gateway_not_configured"),
+            Map.entry("Failed to initiate online payment", "error.payment.init_failed"),
+            Map.entry("Invalid payment signature", "error.payment.invalid_signature"),
+            Map.entry("Payment order mismatch", "error.payment.order_mismatch"),
+            Map.entry("Payment session is only for online orders", "error.payment.session_online_only"),
+            Map.entry("Payment verification is only for online orders", "error.payment.verify_online_only"),
+            Map.entry("Order amount is too low for online payment", "error.payment.amount_too_low"),
+            Map.entry("Item is not returnable", "error.return.not_returnable"),
+            Map.entry("Item can only be returned after delivery", "error.return.not_delivered"),
+            Map.entry("Return already requested for this item", "error.return.already_requested"),
+            Map.entry("Return request not found", "error.return.not_found"),
+            Map.entry("Return request is no longer pending", "error.return.not_pending"),
+            Map.entry("Invalid return status transition", "error.return.invalid_status")
     );
 
     private final MessageSource messageSource;

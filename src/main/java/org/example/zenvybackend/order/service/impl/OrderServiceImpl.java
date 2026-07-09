@@ -10,8 +10,10 @@ import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.response.PagedResponse;
 import org.example.zenvybackend.order.dto.request.CheckoutRequest;
 import org.example.zenvybackend.order.dto.request.UpdateSellerOrderStatusRequest;
+import org.example.zenvybackend.order.dto.request.VerifyPaymentRequest;
 import org.example.zenvybackend.order.dto.response.OrderResponse;
 import org.example.zenvybackend.order.dto.response.OrderSummaryResponse;
+import org.example.zenvybackend.order.dto.response.PaymentSessionResponse;
 import org.example.zenvybackend.order.dto.response.SellerOrderDetailResponse;
 import org.example.zenvybackend.order.entity.Order;
 import org.example.zenvybackend.order.entity.OrderItem;
@@ -25,6 +27,7 @@ import org.example.zenvybackend.order.repository.OrderRepository;
 import org.example.zenvybackend.order.repository.SellerOrderRepository;
 import org.example.zenvybackend.order.service.OrderEmailService;
 import org.example.zenvybackend.order.service.OrderService;
+import org.example.zenvybackend.order.service.PaymentGatewayService;
 import org.example.zenvybackend.product.entity.Product;
 import org.example.zenvybackend.product.entity.ProductVariation;
 import org.example.zenvybackend.product.repository.ProductVariationRepository;
@@ -60,6 +63,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductVariationRepository productVariationRepository;
     private final OrderMapper orderMapper;
     private final OrderEmailService orderEmailService;
+    private final PaymentGatewayService paymentGatewayService;
 
     @Override
     @Transactional
@@ -135,6 +139,8 @@ public class OrderServiceImpl implements OrderService {
                     .quantity(cartItem.getQuantity())
                     .unitPrice(variation.getPrice())
                     .lineTotal(lineTotal)
+                    .isCancellable(Boolean.TRUE.equals(product.getIsCancellable()))
+                    .isReturnable(Boolean.TRUE.equals(product.getIsReturnable()))
                     .build();
 
             sellerOrder.getItems().add(orderItem);
@@ -146,6 +152,11 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepository.save(order);
         cartService.clearCart();
+
+        if (paymentStatus == PaymentStatus.PENDING) {
+            paymentGatewayService.createPaymentSession(savedOrder);
+            orderRepository.save(savedOrder);
+        }
 
         Order detailedOrder = orderRepository.findWithDetailsById(savedOrder.getId())
                 .orElse(savedOrder);
@@ -159,13 +170,37 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse confirmPayment(UUID orderId) {
+    public PaymentSessionResponse getPaymentSession(UUID orderId) {
         Customer customer = getCurrentCustomer();
         Order order = orderRepository.findByIdAndCustomerUserId(orderId, customer.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         if (order.getPaymentMethod() != PaymentMethod.ONLINE) {
-            throw new BadRequestException("Payment confirmation is only required for online orders");
+            throw new BadRequestException("Payment session is only for online orders");
+        }
+
+        if (order.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new BadRequestException("Payment is already completed");
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Order is cancelled");
+        }
+
+        PaymentSessionResponse session = paymentGatewayService.createPaymentSession(order);
+        orderRepository.save(order);
+        return session;
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse verifyPayment(UUID orderId, VerifyPaymentRequest request) {
+        Customer customer = getCurrentCustomer();
+        Order order = orderRepository.findByIdAndCustomerUserId(orderId, customer.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getPaymentMethod() != PaymentMethod.ONLINE) {
+            throw new BadRequestException("Payment verification is only for online orders");
         }
 
         if (order.getPaymentStatus() == PaymentStatus.PAID) {
@@ -179,6 +214,13 @@ public class OrderServiceImpl implements OrderService {
         if (order.getPaymentStatus() != PaymentStatus.PENDING) {
             throw new BadRequestException("Payment cannot be confirmed for this order");
         }
+
+        paymentGatewayService.verifyAndCapturePayment(
+                order,
+                request.getRazorpayOrderId(),
+                request.getRazorpayPaymentId(),
+                request.getRazorpaySignature()
+        );
 
         order.setPaymentStatus(PaymentStatus.PAID);
         orderRepository.save(order);
@@ -231,6 +273,14 @@ public class OrderServiceImpl implements OrderService {
 
         if (hasNonPendingSellerOrder) {
             throw new BadRequestException("Order cannot be cancelled after seller confirmation");
+        }
+
+        boolean hasNonCancellableItem = order.getSellerOrders().stream()
+                .flatMap(sellerOrder -> sellerOrder.getItems().stream())
+                .anyMatch(item -> !Boolean.TRUE.equals(item.getIsCancellable()));
+
+        if (hasNonCancellableItem) {
+            throw new BadRequestException("Order contains non-cancellable items");
         }
 
         restoreStock(order);

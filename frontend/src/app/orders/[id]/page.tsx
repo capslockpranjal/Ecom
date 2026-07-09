@@ -1,6 +1,13 @@
 "use client";
 
-import { cancelOrder, confirmPayment, getOrder, isLoggedIn, Order } from "@/lib/api";
+import {
+  cancelOrder,
+  createReturn,
+  getOrder,
+  isLoggedIn,
+  Order,
+} from "@/lib/api";
+import { openRazorpayCheckout } from "@/lib/razorpay";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,10 +39,7 @@ export default function OrderDetailPage() {
       .finally(() => setLoading(false));
   }, [params.id, router]);
 
-  const canCancel =
-    order &&
-    order.status === "PLACED" &&
-    order.sellerOrders.every((so) => so.status === "PENDING");
+  const canCancel = order?.cancellable === true;
 
   const needsPayment =
     order &&
@@ -59,17 +63,31 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function handleConfirmPayment() {
+  async function handlePayOnline() {
     if (!order || !needsPayment) return;
     setActing(true);
     setError("");
     setActionMessage("");
     try {
-      const updated = await confirmPayment(order.id);
-      setOrder(updated);
+      await openRazorpayCheckout(order.id);
       setActionMessage("Payment confirmed");
+      await loadOrder();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleReturn(itemId: string) {
+    const reason = prompt("Reason for return (optional)") || undefined;
+    setActing(true);
+    setError("");
+    try {
+      await createReturn(itemId, reason);
+      setActionMessage("Return request submitted");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Return request failed");
     } finally {
       setActing(false);
     }
@@ -95,11 +113,11 @@ export default function OrderDetailPage() {
           <div className="flex gap-2">
             {needsPayment && (
               <button
-                onClick={handleConfirmPayment}
+                onClick={handlePayOnline}
                 disabled={acting}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
               >
-                Confirm Payment
+                Pay with Razorpay
               </button>
             )}
             {canCancel && (
@@ -135,6 +153,9 @@ export default function OrderDetailPage() {
           <p className="mt-3 text-sm text-green-700">{actionMessage}</p>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {order && !canCancel && order.status === "PLACED" && (
+          <p className="mt-3 text-sm text-slate-500">This order cannot be cancelled</p>
+        )}
       </div>
 
       {order.sellerOrders.map((sellerOrder) => (
@@ -149,29 +170,49 @@ export default function OrderDetailPage() {
             <span className="text-sm text-slate-600">{sellerOrder.status}</span>
           </div>
           <div className="mt-4 space-y-3">
-            {sellerOrder.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm"
-              >
-                <div>
-                  <p className="font-medium">{item.productName}</p>
-                  <p className="text-slate-600">
-                    {Object.entries(item.metadata)
-                      .map(([k, v]) => `${k}: ${v}`)
-                      .join(", ")}{" "}
-                    × {item.quantity}
-                  </p>
+            {sellerOrder.items.map((item) => {
+              const canReturn =
+                item.isReturnable &&
+                sellerOrder.status === "DELIVERED" &&
+                order.paymentStatus === "PAID";
+
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm"
+                >
+                  <div>
+                    <p className="font-medium">{item.productName}</p>
+                    <p className="text-slate-600">
+                      {Object.entries(item.metadata)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(", ")}{" "}
+                      × {item.quantity}
+                    </p>
+                    {canReturn && (
+                      <button
+                        onClick={() => handleReturn(item.id)}
+                        disabled={acting}
+                        className="mt-1 text-primary hover:underline"
+                      >
+                        Request return
+                      </button>
+                    )}
+                  </div>
+                  <p className="font-medium">₹{item.lineTotal}</p>
                 </div>
-                <p className="font-medium">₹{item.lineTotal}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <p className="mt-4 text-right font-semibold">
             Subtotal: ₹{sellerOrder.subtotal}
           </p>
         </div>
       ))}
+
+      <Link href="/returns" className="text-sm font-medium text-primary">
+        View my return requests →
+      </Link>
     </div>
   );
 }

@@ -110,7 +110,7 @@ export default function CheckoutPage() {
         </div>
         {paymentMethod === "ONLINE" && (
           <p className="mt-2 text-sm text-slate-600">
-            You will confirm payment on the next screen (simulated gateway).
+            You will complete payment securely via Razorpay on the order page.
           </p>
         )}
       </div>

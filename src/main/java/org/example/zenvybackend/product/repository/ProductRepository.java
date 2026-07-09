@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-public interface ProductRepository extends JpaRepository<Product, UUID> {
+public interface ProductRepository extends JpaRepository<Product, UUID>, ProductRepositoryCustom {
 
     // 🔹 Check if category has products (used in validation)
     boolean existsByCategoryAndIsDeletedFalse(Category category);

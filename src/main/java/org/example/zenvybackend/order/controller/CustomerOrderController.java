@@ -6,8 +6,10 @@ import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.common.response.PagedResponse;
 import org.example.zenvybackend.order.dto.request.CheckoutRequest;
+import org.example.zenvybackend.order.dto.request.VerifyPaymentRequest;
 import org.example.zenvybackend.order.dto.response.OrderResponse;
 import org.example.zenvybackend.order.dto.response.OrderSummaryResponse;
+import org.example.zenvybackend.order.dto.response.PaymentSessionResponse;
 import org.example.zenvybackend.order.service.OrderService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -53,11 +55,22 @@ public class CustomerOrderController {
         return ApiResponse.success(messageResolver.get("response.order.cancelled", "Order cancelled"));
     }
 
-    @PostMapping("/{orderId}/confirm-payment")
-    public ApiResponse<OrderResponse> confirmPayment(@PathVariable UUID orderId) {
+    @GetMapping("/{orderId}/payment-session")
+    public ApiResponse<PaymentSessionResponse> getPaymentSession(@PathVariable UUID orderId) {
+        return ApiResponse.success(
+                messageResolver.get("response.payment.session", "Payment session created"),
+                orderService.getPaymentSession(orderId)
+        );
+    }
+
+    @PostMapping("/{orderId}/verify-payment")
+    public ApiResponse<OrderResponse> verifyPayment(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody VerifyPaymentRequest request
+    ) {
         return ApiResponse.success(
                 messageResolver.get("response.payment.confirmed", "Payment confirmed"),
-                orderService.confirmPayment(orderId)
+                orderService.verifyPayment(orderId, request)
         );
     }
 }

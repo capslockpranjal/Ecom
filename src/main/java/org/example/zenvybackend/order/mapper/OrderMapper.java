@@ -10,6 +10,8 @@ import org.example.zenvybackend.order.dto.response.SellerOrderResponse;
 import org.example.zenvybackend.order.entity.Order;
 import org.example.zenvybackend.order.entity.OrderItem;
 import org.example.zenvybackend.order.entity.SellerOrder;
+import org.example.zenvybackend.order.enums.OrderStatus;
+import org.example.zenvybackend.order.enums.SellerOrderStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -39,6 +41,7 @@ public class OrderMapper {
                 .zipCode(order.getZipCode())
                 .label(order.getLabel())
                 .createdAt(order.getCreatedAt())
+                .cancellable(isCancellable(order))
                 .sellerOrders(sellerOrders)
                 .build();
     }
@@ -99,7 +102,26 @@ public class OrderMapper {
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
                 .lineTotal(item.getLineTotal())
+                .isCancellable(item.getIsCancellable())
+                .isReturnable(item.getIsReturnable())
                 .build();
+    }
+
+    private boolean isCancellable(Order order) {
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.COMPLETED) {
+            return false;
+        }
+
+        boolean allSellerOrdersPending = order.getSellerOrders().stream()
+                .allMatch(sellerOrder -> sellerOrder.getStatus() == SellerOrderStatus.PENDING);
+
+        if (!allSellerOrdersPending) {
+            return false;
+        }
+
+        return order.getSellerOrders().stream()
+                .flatMap(sellerOrder -> sellerOrder.getItems().stream())
+                .allMatch(item -> Boolean.TRUE.equals(item.getIsCancellable()));
     }
 
     @SuppressWarnings("unchecked")

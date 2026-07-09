@@ -19,4 +19,6 @@ public class OrderItemResponse {
     private Integer quantity;
     private Double unitPrice;
     private Double lineTotal;
+    private Boolean isCancellable;
+    private Boolean isReturnable;
 }

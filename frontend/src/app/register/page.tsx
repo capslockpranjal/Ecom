@@ -84,6 +84,10 @@ export default function RegisterPage() {
         <Link href="/login" className="font-medium text-primary">
           Login
         </Link>
+        {" · "}
+        <Link href="/register/seller" className="font-medium text-primary">
+          Register as seller
+        </Link>
       </p>
     </div>
   );

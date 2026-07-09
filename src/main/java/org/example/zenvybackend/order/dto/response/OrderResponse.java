@@ -26,5 +26,6 @@ public class OrderResponse {
     private String zipCode;
     private String label;
     private LocalDateTime createdAt;
+    private Boolean cancellable;
     private List<SellerOrderResponse> sellerOrders;
 }

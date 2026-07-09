@@ -18,6 +18,7 @@ import org.example.zenvybackend.common.util.JsonUtil;
 import org.example.zenvybackend.common.util.PageUtils;
 import org.example.zenvybackend.product.dto.request.AddProductRequest;
 import org.example.zenvybackend.product.dto.request.AddProductVariationRequest;
+import org.example.zenvybackend.product.dto.request.CustomerProductFilterDto;
 import org.example.zenvybackend.product.dto.request.UpdateProductRequest;
 import org.example.zenvybackend.product.dto.request.UpdateProductVariationRequest;
 import org.example.zenvybackend.product.dto.response.CustomerProductCategoryResponse;
@@ -426,7 +427,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public Object getCustomerProducts(UUID categoryId, PageRequestDto dto) {
+    public Object getCustomerProducts(UUID categoryId, PageRequestDto dto, CustomerProductFilterDto filter) {
         getCurrentActiveCustomer();
 
         Category category = categoryRepository.findById(categoryId)
@@ -435,8 +436,27 @@ public class ProductServiceImpl implements ProductService {
         List<Category> categories = getCategoryAndDescendants(category);
         Pageable pageable = PageUtils.getPageable(dto, CUSTOMER_PRODUCT_SORT_FIELDS);
 
-        return productRepository.findActiveCustomerVisibleProductsByCategories(categories, pageable)
-                .map(product -> CustomerProductListItemResponse.builder()
+        boolean hasFilters = filter != null && (
+                (filter.getBrand() != null && !filter.getBrand().isBlank())
+                        || filter.getMinPrice() != null
+                        || filter.getMaxPrice() != null
+                        || (filter.getMetadata() != null && !filter.getMetadata().isEmpty())
+        );
+
+        CustomerProductFilterDto effectiveFilter = filter != null ? filter : new CustomerProductFilterDto();
+
+        Page<Product> productPage = hasFilters
+                ? productRepository.findFilteredCustomerVisibleProducts(
+                categories,
+                effectiveFilter.getBrand(),
+                effectiveFilter.getMinPrice(),
+                effectiveFilter.getMaxPrice(),
+                effectiveFilter.getMetadata(),
+                pageable
+        )
+                : productRepository.findActiveCustomerVisibleProductsByCategories(categories, pageable);
+
+        return productPage.map(product -> CustomerProductListItemResponse.builder()
                         .id(product.getId())
                         .name(product.getName())
                         .description(product.getDescription())

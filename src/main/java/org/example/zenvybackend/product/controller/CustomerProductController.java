@@ -4,15 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
+import org.example.zenvybackend.product.dto.request.CustomerProductFilterDto;
 import org.example.zenvybackend.product.dto.response.CustomerProductDetailResponse;
 import org.example.zenvybackend.product.service.ProductService;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -30,7 +29,11 @@ public class CustomerProductController {
             @RequestParam(required = false) Integer max,
             @RequestParam(required = false) Integer offset,
             @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String order
+            @RequestParam(required = false) String order,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam Map<String, String> allParams
     ) {
         PageRequestDto dto = new PageRequestDto();
         dto.setMax(max);
@@ -38,9 +41,22 @@ public class CustomerProductController {
         dto.setSort(sort);
         dto.setOrder(order);
 
+        CustomerProductFilterDto filter = new CustomerProductFilterDto();
+        filter.setBrand(brand);
+        filter.setMinPrice(minPrice);
+        filter.setMaxPrice(maxPrice);
+
+        Map<String, String> metadata = new HashMap<>();
+        allParams.forEach((key, value) -> {
+            if (key.startsWith("metadata.") && value != null && !value.isBlank()) {
+                metadata.put(key.substring("metadata.".length()), value);
+            }
+        });
+        filter.setMetadata(metadata);
+
         return ApiResponse.success(
                 messageResolver.get("response.product.list", "Product list"),
-                productService.getCustomerProducts(categoryId, dto)
+                productService.getCustomerProducts(categoryId, dto, filter)
         );
     }
 

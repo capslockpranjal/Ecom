@@ -53,6 +53,10 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private Double totalAmount;
 
+    private String razorpayOrderId;
+
+    private String razorpayPaymentId;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<SellerOrder> sellerOrders = new ArrayList<>();

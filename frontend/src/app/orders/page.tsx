@@ -20,7 +20,7 @@ export default function OrdersPage() {
     async function load() {
       try {
         const data = await getOrders();
-        setOrders(data);
+        setOrders(data.content);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load orders");
       } finally {

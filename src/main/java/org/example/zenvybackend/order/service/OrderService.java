@@ -3,8 +3,10 @@ package org.example.zenvybackend.order.service;
 import org.example.zenvybackend.common.response.PagedResponse;
 import org.example.zenvybackend.order.dto.request.CheckoutRequest;
 import org.example.zenvybackend.order.dto.request.UpdateSellerOrderStatusRequest;
+import org.example.zenvybackend.order.dto.request.VerifyPaymentRequest;
 import org.example.zenvybackend.order.dto.response.OrderResponse;
 import org.example.zenvybackend.order.dto.response.OrderSummaryResponse;
+import org.example.zenvybackend.order.dto.response.PaymentSessionResponse;
 import org.example.zenvybackend.order.dto.response.SellerOrderDetailResponse;
 
 import java.util.UUID;
@@ -29,5 +31,7 @@ public interface OrderService {
 
     OrderResponse getAdminOrder(UUID orderId);
 
-    OrderResponse confirmPayment(UUID orderId);
+    PaymentSessionResponse getPaymentSession(UUID orderId);
+
+    OrderResponse verifyPayment(UUID orderId, VerifyPaymentRequest request);
 }

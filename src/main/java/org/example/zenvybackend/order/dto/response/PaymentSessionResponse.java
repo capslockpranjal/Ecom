@@ -10,6 +10,10 @@ import java.util.UUID;
 public class PaymentSessionResponse {
 
     private UUID orderId;
+    private String razorpayOrderId;
+    private String razorpayKeyId;
+    private Long amount;
+    private String currency;
     private String paymentStatus;
     private String paymentMethod;
     private boolean requiresPayment;

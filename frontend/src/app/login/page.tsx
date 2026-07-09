@@ -30,9 +30,9 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-bold">Customer Login</h1>
+      <h1 className="text-2xl font-bold">Login</h1>
       <p className="mt-1 text-sm text-slate-600">
-        Sign in to browse products and place orders.
+        Sign in as customer, seller, or admin.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -69,7 +69,20 @@ export default function LoginPage() {
       <p className="mt-4 text-sm text-slate-600">
         New here?{" "}
         <Link href="/register" className="font-medium text-primary">
-          Create an account
+          Customer account
+        </Link>
+        {" · "}
+        <Link href="/register/seller" className="font-medium text-primary">
+          Seller account
+        </Link>
+      </p>
+      <p className="mt-2 text-sm text-slate-600">
+        <Link href="/forgot-password" className="text-primary">
+          Forgot password?
+        </Link>
+        {" · "}
+        <Link href="/resend-activation" className="text-primary">
+          Resend activation
         </Link>
       </p>
     </div>
