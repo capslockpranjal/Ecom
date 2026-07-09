@@ -26,6 +26,7 @@ import org.example.zenvybackend.order.mapper.OrderMapper;
 import org.example.zenvybackend.order.repository.OrderRepository;
 import org.example.zenvybackend.order.repository.SellerOrderRepository;
 import org.example.zenvybackend.order.service.OrderEmailService;
+import org.example.zenvybackend.order.service.OrderFetchHelper;
 import org.example.zenvybackend.order.service.OrderService;
 import org.example.zenvybackend.order.service.PaymentGatewayService;
 import org.example.zenvybackend.product.entity.Product;
@@ -64,6 +65,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final OrderEmailService orderEmailService;
     private final PaymentGatewayService paymentGatewayService;
+    private final OrderFetchHelper orderFetchHelper;
 
     @Override
     @Transactional
@@ -158,8 +160,7 @@ public class OrderServiceImpl implements OrderService {
             orderRepository.save(savedOrder);
         }
 
-        Order detailedOrder = orderRepository.findWithDetailsById(savedOrder.getId())
-                .orElse(savedOrder);
+        Order detailedOrder = orderFetchHelper.getOrderWithDetails(savedOrder.getId());
 
         if (paymentStatus == PaymentStatus.PAID) {
             orderEmailService.sendOrderPlacedEmail(detailedOrder);
@@ -225,7 +226,7 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentStatus(PaymentStatus.PAID);
         orderRepository.save(order);
 
-        Order detailedOrder = orderRepository.findWithDetailsById(order.getId()).orElse(order);
+        Order detailedOrder = orderFetchHelper.getOrderWithDetails(order.getId());
         orderEmailService.sendOrderPlacedEmail(detailedOrder);
 
         return orderMapper.toResponse(detailedOrder);
@@ -239,6 +240,7 @@ public class OrderServiceImpl implements OrderService {
                 customer,
                 PageRequest.of(pageOffset, pageSize)
         );
+        orderFetchHelper.fetchSellerOrdersForSummary(page.getContent());
 
         return toPagedSummary(page);
     }
@@ -247,9 +249,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public OrderResponse getCustomerOrder(UUID orderId) {
         Customer customer = getCurrentCustomer();
-        Order order = orderRepository.findByIdAndCustomerUserId(orderId, customer.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-
+        Order order = orderFetchHelper.getOrderWithDetailsForCustomer(orderId, customer.getUserId());
         return orderMapper.toResponse(order);
     }
 
@@ -257,8 +257,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void cancelCustomerOrder(UUID orderId) {
         Customer customer = getCurrentCustomer();
-        Order order = orderRepository.findByIdAndCustomerUserId(orderId, customer.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        Order order = orderFetchHelper.getOrderWithDetailsForCustomer(orderId, customer.getUserId());
 
         if (order.getStatus() == OrderStatus.CANCELLED) {
             throw new BadRequestException("Order is already cancelled");
@@ -293,7 +292,7 @@ public class OrderServiceImpl implements OrderService {
         order.getSellerOrders().forEach(sellerOrder -> sellerOrder.setStatus(SellerOrderStatus.CANCELLED));
         orderRepository.save(order);
 
-        Order detailedOrder = orderRepository.findWithDetailsById(order.getId()).orElse(order);
+        Order detailedOrder = orderFetchHelper.getOrderWithDetails(order.getId());
         orderEmailService.sendOrderCancelledEmail(detailedOrder);
     }
 
@@ -332,9 +331,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public SellerOrderDetailResponse getSellerOrder(UUID sellerOrderId) {
         Seller seller = getCurrentSeller();
-        SellerOrder sellerOrder = sellerOrderRepository.findByIdAndSellerUserId(sellerOrderId, seller.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Seller order not found"));
-
+        SellerOrder sellerOrder = orderFetchHelper.getSellerOrderWithDetails(sellerOrderId, seller.getUserId());
         return orderMapper.toSellerOrderDetail(sellerOrder);
     }
 
@@ -378,14 +375,14 @@ public class OrderServiceImpl implements OrderService {
         Page<Order> page = orderRepository.findAllByOrderByCreatedAtDesc(
                 PageRequest.of(pageOffset, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"))
         );
+        orderFetchHelper.fetchSellerOrdersForSummary(page.getContent());
         return toPagedSummary(page);
     }
 
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getAdminOrder(UUID orderId) {
-        Order order = orderRepository.findWithDetailsById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        Order order = orderFetchHelper.getOrderWithDetails(orderId);
         return orderMapper.toResponse(order);
     }
 

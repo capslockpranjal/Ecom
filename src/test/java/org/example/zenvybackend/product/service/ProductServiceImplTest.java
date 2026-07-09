@@ -1179,7 +1179,7 @@ class ProductServiceImplTest {
                 .id(variation.getId())
                 .build();
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product))
                 .thenReturn(List.of(variation));
@@ -1206,7 +1206,7 @@ class ProductServiceImplTest {
         product.setIsDeleted(false);
         product.setCategory(new Category());
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
 
         assertThrows(BadRequestException.class, () -> productService.getCustomerProduct(productId));
@@ -1222,7 +1222,7 @@ class ProductServiceImplTest {
         product.setIsDeleted(false);
         product.setCategory(new Category());
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product))
                 .thenReturn(List.of());
@@ -1235,7 +1235,7 @@ class ProductServiceImplTest {
         UUID productId = UUID.randomUUID();
         customer.getUser().setIsActive(false);
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
 
         assertThrows(UnauthorizedException.class, () -> productService.getCustomerProduct(productId));
     }
@@ -1282,7 +1282,7 @@ class ProductServiceImplTest {
 
         Page<Product> page = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(category)).thenReturn(List.of(childCategory));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(childCategory)).thenReturn(List.of());
@@ -1314,7 +1314,7 @@ class ProductServiceImplTest {
     void getCustomerProducts_rejectsInvalidCategory() {
         UUID categoryId = UUID.randomUUID();
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> productService.getCustomerProducts(categoryId, new PageRequestDto(), new CustomerProductFilterDto()));
@@ -1325,7 +1325,7 @@ class ProductServiceImplTest {
         UUID categoryId = UUID.randomUUID();
         customer.getUser().setIsActive(false);
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
 
         assertThrows(UnauthorizedException.class, () -> productService.getCustomerProducts(categoryId, new PageRequestDto(), new CustomerProductFilterDto()));
     }
@@ -1365,7 +1365,7 @@ class ProductServiceImplTest {
 
         Page<Product> page = new PageImpl<>(List.of(similarProduct), PageRequest.of(0, 10), 1);
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(productRepository.findById(productId)).thenReturn(Optional.of(currentProduct));
         when(productRepository.findSimilarActiveCustomerVisibleProducts(eq(category), eq(productId), any()))
                 .thenReturn(page);
@@ -1397,7 +1397,7 @@ class ProductServiceImplTest {
         currentProduct.setIsActive(false);
         currentProduct.setIsDeleted(false);
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(productRepository.findById(productId)).thenReturn(Optional.of(currentProduct));
 
         assertThrows(BadRequestException.class, () -> productService.getSimilarCustomerProducts(productId, new PageRequestDto()));
@@ -1407,7 +1407,7 @@ class ProductServiceImplTest {
     void getSimilarCustomerProducts_rejectsInvalidProductId() {
         UUID productId = UUID.randomUUID();
 
-        when(customerRepository.findById(sellerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(sellerId)).thenReturn(Optional.of(customer));
         when(productRepository.findById(productId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> productService.getSimilarCustomerProducts(productId, new PageRequestDto()));

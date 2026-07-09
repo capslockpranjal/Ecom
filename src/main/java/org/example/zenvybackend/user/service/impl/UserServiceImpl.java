@@ -49,14 +49,10 @@ public class UserServiceImpl implements UserService {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
 
-        User user = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        Customer customer = customerRepository
-                .findByUser(user)
+        Customer customer = customerRepository.findByIdWithUser(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        return UserMapper.toProfileResponse(customer, imageStorageService.getUserProfileImageUrl(user.getId()));
+        return UserMapper.toProfileResponse(customer, imageStorageService.getUserProfileImageUrl(currentUserId));
     }
 
     @Transactional
@@ -71,11 +67,11 @@ public class UserServiceImpl implements UserService {
     public CustomerProfileResponse updateCustomerProfile(UpdateCustomerProfileRequest request, MultipartFile profileImage) {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
-        User user = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Customer customer = customerRepository.findById(user.getId())
+        Customer customer = customerRepository.findByIdWithUser(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+
+        User user = customer.getUser();
 
 
         

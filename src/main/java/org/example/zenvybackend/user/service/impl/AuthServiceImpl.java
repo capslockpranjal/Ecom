@@ -62,6 +62,9 @@ public class AuthServiceImpl implements AuthService {
     @Value("${jwt.refresh.expiration}")
     private long refreshExpiration;
 
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
 
     @Transactional
     @Override
@@ -262,7 +265,7 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendEmail(
                 user.getEmail(),
                 "Activate your account",
-                "Activation Link: http://localhost:8080/auth/activate?token=" + tokenValue
+                "Activation Link: " + frontendBaseUrl + "/activate?token=" + tokenValue
         );
     }
 
@@ -400,7 +403,7 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendEmail(
                 user.getEmail(),
                 "Reset Password",
-                "Reset Link: http://localhost:8080/auth/reset-password?token=" + tokenValue
+                "Reset Link: " + frontendBaseUrl + "/reset-password?token=" + tokenValue
         );
 
         log.info("Password reset requested: userId={}", user.getId());

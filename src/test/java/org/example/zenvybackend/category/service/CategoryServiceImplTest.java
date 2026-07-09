@@ -110,7 +110,7 @@ class CategoryServiceImplTest {
                 .metadataValues("S,M,L")
                 .build();
 
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findByParentCategoryIsNullAndIsDeletedFalse()).thenReturn(List.of(root));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(root)).thenReturn(List.of());
         when(valuesRepository.findByCategoryWithField(root)).thenReturn(List.of(values));
@@ -131,7 +131,7 @@ class CategoryServiceImplTest {
     void getCustomerCategories_rejectsInvalidCategoryId() {
         UUID categoryId = UUID.randomUUID();
 
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> categoryService.getCustomerCategories(categoryId));
@@ -156,7 +156,7 @@ class CategoryServiceImplTest {
                 .metadataValues("S,M,L")
                 .build();
 
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(category)).thenReturn(List.of());
         when(valuesRepository.findByCategoryWithField(category)).thenReturn(List.of(values));
@@ -178,7 +178,7 @@ class CategoryServiceImplTest {
     void customerCategoryApisRejectInactiveCustomer() {
         customer.getUser().setIsActive(false);
 
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
 
         assertThrows(UnauthorizedException.class, () -> categoryService.getCustomerCategories(null));
         assertThrows(UnauthorizedException.class, () -> categoryService.getFilteringData(UUID.randomUUID()));

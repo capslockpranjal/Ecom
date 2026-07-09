@@ -476,7 +476,7 @@ public class CategoryServiceImpl implements CategoryService {
     private Customer getCurrentActiveCustomer() {
         UUID currentUserId = SecurityUtil.getCurrentUserId();
 
-        Customer customer = customerRepository.findById(currentUserId)
+        Customer customer = customerRepository.findByIdWithUser(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
         if (customer.getUser() == null || !Boolean.TRUE.equals(customer.getUser().getIsActive())) {

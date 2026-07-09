@@ -1,5 +1,6 @@
 package org.example.zenvybackend.order.entity;
 
+import org.hibernate.annotations.BatchSize;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.zenvybackend.common.entity.BaseEntity;
@@ -39,6 +40,7 @@ public class SellerOrder extends BaseEntity {
     private Double subtotal;
 
     @OneToMany(mappedBy = "sellerOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 }
