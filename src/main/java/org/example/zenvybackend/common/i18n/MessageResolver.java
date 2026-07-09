@@ -76,7 +76,25 @@ public class MessageResolver {
             Map.entry("Invalid image content type", "error.image.invalid_content_type"),
             Map.entry("Image size exceeds allowed limit", "error.image.size_exceeded"),
             Map.entry("Failed to process image", "error.image.process_failed"),
-            Map.entry("Invalid sort field", "error.page.sort.invalid")
+            Map.entry("Invalid sort field", "error.page.sort.invalid"),
+            Map.entry("Cart is empty", "error.cart.empty"),
+            Map.entry("Cart item not found", "error.cart.item.not_found"),
+            Map.entry("Insufficient stock available", "error.stock.insufficient"),
+            Map.entry("Order not found", "error.order.not_found"),
+            Map.entry("Order is already cancelled", "error.order.already_cancelled"),
+            Map.entry("Completed orders cannot be cancelled", "error.order.cannot_cancel_completed"),
+            Map.entry("Order cannot be cancelled after seller confirmation", "error.order.cannot_cancel_after_confirmation"),
+            Map.entry("Order is cancelled", "error.order.cancelled"),
+            Map.entry("Invalid seller order status transition", "error.order.invalid_status_transition"),
+            Map.entry("Online payment is not supported yet", "error.payment.online_not_supported"),
+            Map.entry("Quantity must be at least 1", "error.quantity.min_one"),
+            Map.entry("User is not a customer", "error.user.not_customer"),
+            Map.entry("Product variation is no longer available", "error.variation.unavailable"),
+            Map.entry("Seller order not found", "error.order.not_found"),
+            Map.entry("Payment is already completed", "error.payment.already_completed"),
+            Map.entry("Payment confirmation is only required for online orders", "error.payment.confirm_online_only"),
+            Map.entry("Payment cannot be confirmed for this order", "error.payment.cannot_confirm"),
+            Map.entry("Order payment is not completed", "error.payment.not_completed")
     );
 
     private final MessageSource messageSource;

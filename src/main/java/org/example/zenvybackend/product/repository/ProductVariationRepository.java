@@ -5,7 +5,9 @@ import org.example.zenvybackend.product.entity.ProductVariation;
 import org.example.zenvybackend.category.entity.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -106,4 +108,8 @@ AND pv.isActive = true
     Optional<ProductVariation> findByIdAndIsDeletedFalse(UUID id);
 
     Optional<ProductVariation> findByIdAndIsDeletedFalseAndIsActiveTrue(UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select pv from ProductVariation pv where pv.id = :id and pv.isDeleted = false")
+    Optional<ProductVariation> findByIdForUpdate(UUID id);
 }

@@ -8,6 +8,9 @@ import org.example.zenvybackend.admin.service.AdminService;
 import org.example.zenvybackend.common.i18n.MessageResolver;
 import org.example.zenvybackend.common.response.ApiResponse;
 import org.example.zenvybackend.common.response.PagedResponse;
+import org.example.zenvybackend.order.dto.response.OrderResponse;
+import org.example.zenvybackend.order.dto.response.OrderSummaryResponse;
+import org.example.zenvybackend.order.service.OrderService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +23,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final OrderService orderService;
     private final MessageResolver messageResolver;
 
     @GetMapping("/test")
@@ -111,5 +115,21 @@ public class AdminController {
     public ApiResponse<Void> deactivateProduct(@PathVariable UUID id) {
         adminService.deactivateProduct(id);
         return ApiResponse.success(messageResolver.get("response.product.deactivated", "Product deactivated successfully"));
+    }
+
+    @GetMapping("/orders")
+    public PagedResponse<OrderSummaryResponse> getOrders(
+            @RequestParam(defaultValue = "0") int pageOffset,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        return orderService.getAdminOrders(pageOffset, pageSize);
+    }
+
+    @GetMapping("/orders/{orderId}")
+    public ApiResponse<OrderResponse> getOrder(@PathVariable UUID orderId) {
+        return ApiResponse.success(
+                messageResolver.get("response.order.details", "Order details"),
+                orderService.getAdminOrder(orderId)
+        );
     }
 }

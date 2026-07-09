@@ -46,4 +46,7 @@ public class ProductVariation extends BaseEntity {
     private String metadata;
     @Column(nullable = false)
     private Boolean isActive = true;
+
+    @Version
+    private Long version;
 }

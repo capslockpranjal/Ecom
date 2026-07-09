@@ -27,6 +27,11 @@ Spring Boot backend for a role-based e-commerce platform with support for custom
 - Customer product browsing, product details, and similar products
 - Customer and seller profile management
 - Customer address management
+- Shopping cart with stock validation
+- Checkout with COD payment and multi-seller order splitting
+- Order management for customers, sellers, and admins
+- Inventory deduction and restoration on order/cancel
+- Next.js storefront (`frontend/`) for browse, cart, and checkout
 - File-based image storage for profile and product variation images
 - Internationalized response messages
 
@@ -36,12 +41,16 @@ Spring Boot backend for a role-based e-commerce platform with support for custom
 src/main/java/org/example/zenvybackend
 ├── admin        # Admin APIs and services
 ├── bootstrap    # Startup role/admin seeding
+├── cart         # Customer shopping cart
 ├── category     # Category tree and metadata management
 ├── common       # Shared config, exceptions, responses, utilities, storage
 ├── config       # Jackson and app configuration
+├── order        # Checkout, orders, seller fulfillment
 ├── product      # Product, variation, and customer product browsing
 ├── security     # JWT, filters, security config, auth helpers
 └── user         # Auth, profile, seller, customer, address flows
+
+frontend/        # Next.js customer storefront
 ```
 
 ## Requirements
@@ -292,6 +301,27 @@ Authorization: Bearer <access-token>
 - `GET /customer/products/{productId}`
 - `GET /customer/products/{productId}/similar`
 
+### Cart
+
+- `GET /customer/cart`
+- `POST /customer/cart/items`
+- `PATCH /customer/cart/items/{itemId}`
+- `DELETE /customer/cart/items/{itemId}`
+- `DELETE /customer/cart`
+
+### Orders
+
+- `POST /customer/orders/checkout`
+- `GET /customer/orders`
+- `GET /customer/orders/{orderId}`
+- `POST /customer/orders/{orderId}/cancel`
+- `POST /customer/orders/{orderId}/confirm-payment`
+- `GET /seller/orders`
+- `GET /seller/orders/{sellerOrderId}`
+- `PATCH /seller/orders/{sellerOrderId}/status`
+- `GET /admin/orders`
+- `GET /admin/orders/{orderId}`
+
 ### Profiles and Address
 
 - `GET /customer/profile`
@@ -349,6 +379,44 @@ Current image constraints in code:
 - Allowed extensions: `jpg`, `jpeg`, `png`, `bmp`
 - File size limit: 5 MB
 - Images are stored on disk under `uploads/`
+
+## Frontend Storefront
+
+The `frontend/` directory contains a Next.js customer storefront.
+
+### Setup
+
+```bash
+cd frontend
+cp .env.local.example .env.local
+npm install
+npm run dev
+```
+
+The storefront runs at `http://localhost:3000` and talks to the backend at `http://localhost:8080`.
+
+Customer flow:
+
+1. Register and activate account
+2. Login
+3. Browse categories and products
+4. Add variations to cart
+5. Checkout with a saved address (COD or simulated online payment)
+6. Confirm online payment on the order detail page (if applicable)
+7. View order history and cancel pending orders
+
+Seller flow (`/seller/orders`):
+
+1. Login as an activated seller
+2. View incoming seller orders
+3. Advance status: PENDING → CONFIRMED → SHIPPED → DELIVERED
+
+Admin flow (`/admin/orders`):
+
+1. Login as admin
+2. View all marketplace orders and seller breakdowns
+
+Set `APP_CORS_ALLOWED_ORIGINS=http://localhost:3000` on the backend when running the frontend locally.
 
 ## Testing
 
