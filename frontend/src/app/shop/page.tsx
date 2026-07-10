@@ -14,6 +14,8 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
 
 const PAGE_SIZE = 12;
 
@@ -119,22 +121,34 @@ function ShopContent() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Shop</h1>
-        <p className="text-slate-600">
-          {categoryId ? "Products in selected category" : "Choose a category to browse products"}
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Shop"
+        subtitle={
+          categoryId
+            ? "Products in your selected category"
+            : "Choose a category and discover curated finds"
+        }
+      />
 
       {categoryId && (
-        <Link href="/shop" className="text-sm font-medium text-primary">
-          ← Back to categories
+        <Link
+          href="/shop"
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          ← All categories
         </Link>
       )}
 
-      {error && <p className="text-red-600">{error}</p>}
-      {loading && <p className="text-slate-600">Loading...</p>}
+      {error && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
+      {loading && (
+        <div className="flex items-center gap-3 text-zen-800/70">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          Loading...
+        </div>
+      )}
 
       {!loading && !categoryId && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -142,25 +156,30 @@ function ShopContent() {
             <Link
               key={category.id}
               href={`/shop?categoryId=${category.id}`}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md"
+              className="group zenvy-card p-6 transition hover:border-primary/40 hover:shadow-zen-lg"
             >
-              <h2 className="text-lg font-semibold">{category.name}</h2>
-              <p className="mt-2 text-sm text-slate-600">Browse products</p>
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-zen-100 text-primary transition group-hover:bg-primary/10">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              <h2 className="font-display text-xl font-semibold text-zen-900">{category.name}</h2>
+              <p className="mt-1 text-sm text-zen-800/60">Browse collection →</p>
             </Link>
           ))}
         </div>
       )}
 
       {!loading && categoryId && categories.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/shop?categoryId=${category.id}`}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-primary"
+              className="zenvy-card p-4 transition hover:border-primary/40"
             >
-              <h2 className="font-semibold">{category.name}</h2>
-              <p className="text-sm text-slate-600">Subcategory</p>
+              <h2 className="font-medium text-zen-900">{category.name}</h2>
+              <p className="text-xs text-zen-800/50">Subcategory</p>
             </Link>
           ))}
         </div>
@@ -169,36 +188,36 @@ function ShopContent() {
       {!loading && categoryId && (
         <div className="flex flex-col gap-6 lg:flex-row">
           {filters && (
-            <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 lg:w-64">
-              <h2 className="font-semibold">Filters</h2>
+            <aside className="zenvy-card w-full shrink-0 p-5 lg:w-72">
+              <h2 className="font-display text-lg font-semibold text-zen-900">Filters</h2>
 
-              <div className="mt-3">
-                <p className="text-sm font-medium text-slate-600">Price range (₹)</p>
+              <div className="mt-4">
+                <p className="text-sm font-medium text-zen-800/70">Price range (₹)</p>
                 <div className="mt-2 flex gap-2">
                   <input
                     type="number"
                     placeholder={String(filters.minPrice)}
                     value={minPrice}
                     onChange={(e) => updateParams({ minPrice: e.target.value || null, page: "0" })}
-                    className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                    className="zenvy-input py-1.5 text-sm"
                   />
                   <input
                     type="number"
                     placeholder={String(filters.maxPrice)}
                     value={maxPrice}
                     onChange={(e) => updateParams({ maxPrice: e.target.value || null, page: "0" })}
-                    className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                    className="zenvy-input py-1.5 text-sm"
                   />
                 </div>
               </div>
 
               {filters.brands.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-sm font-medium text-slate-600">Brand</p>
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-zen-800/70">Brand</p>
                   <div className="mt-2 space-y-1">
                     <button
                       onClick={() => updateParams({ brand: null, page: "0" })}
-                      className={`block text-sm ${!brandFilter ? "font-semibold text-primary" : ""}`}
+                      className={`block rounded-lg px-2 py-1 text-sm transition hover:bg-zen-100 ${!brandFilter ? "font-semibold text-primary" : "text-zen-800/70"}`}
                     >
                       All brands
                     </button>
@@ -206,7 +225,7 @@ function ShopContent() {
                       <button
                         key={brand}
                         onClick={() => updateParams({ brand, page: "0" })}
-                        className={`block text-sm ${brandFilter === brand ? "font-semibold text-primary" : ""}`}
+                        className={`block rounded-lg px-2 py-1 text-sm transition hover:bg-zen-100 ${brandFilter === brand ? "font-semibold text-primary" : "text-zen-800/70"}`}
                       >
                         {brand}
                       </button>
@@ -216,9 +235,9 @@ function ShopContent() {
               )}
 
               {filters.metadata.map((field) => (
-                <div key={field.fieldId} className="mt-3">
-                  <p className="text-sm font-medium text-slate-600">{field.name}</p>
-                  <div className="mt-2 flex flex-wrap gap-1">
+                <div key={field.fieldId} className="mt-4">
+                  <p className="text-sm font-medium text-zen-800/70">{field.name}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {field.values.map((value) => {
                       const active = metadataFilters[field.name] === value;
                       return (
@@ -229,10 +248,10 @@ function ShopContent() {
                               ? clearMetadataFilter(field.name)
                               : applyMetadataFilter(field.name, value)
                           }
-                          className={`rounded-full border px-2 py-0.5 text-xs ${
+                          className={`rounded-full border px-2.5 py-0.5 text-xs transition ${
                             active
-                              ? "border-primary bg-teal-50 text-primary"
-                              : "border-slate-300"
+                              ? "border-primary bg-primary/10 font-medium text-primary"
+                              : "border-zen-200 text-zen-800/70 hover:border-primary/40"
                           }`}
                         >
                           {value}
@@ -245,12 +264,12 @@ function ShopContent() {
             </aside>
           )}
 
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 space-y-5">
             <div className="flex flex-wrap items-center gap-3">
               <select
                 value={sort}
                 onChange={(e) => updateParams({ sort: e.target.value, page: "0" })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="zenvy-input w-auto py-2 text-sm"
               >
                 <option value="createdAt">Newest</option>
                 <option value="name">Name</option>
@@ -259,7 +278,7 @@ function ShopContent() {
               <select
                 value={order}
                 onChange={(e) => updateParams({ order: e.target.value, page: "0" })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="zenvy-input w-auto py-2 text-sm"
               >
                 <option value="desc">Descending</option>
                 <option value="asc">Ascending</option>
@@ -268,7 +287,9 @@ function ShopContent() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {products.length === 0 ? (
-                <p className="text-slate-600">No products match your filters.</p>
+                <p className="col-span-full rounded-xl border border-dashed border-zen-200 bg-zen-50/50 p-8 text-center text-zen-800/60">
+                  No products match your filters.
+                </p>
               ) : (
                 products.map((product) => {
                   const image = imageUrl(product.primaryImages?.[0]);
@@ -276,19 +297,27 @@ function ShopContent() {
                     <Link
                       key={product.id}
                       href={`/products/${product.id}`}
-                      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                      className="group overflow-hidden zenvy-card transition hover:border-primary/30 hover:shadow-zen-lg"
                     >
-                      <div className="flex h-44 items-center justify-center bg-slate-100">
+                      <div className="flex h-48 items-center justify-center bg-zen-100">
                         {image ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={image} alt={product.name} className="h-full w-full object-cover" />
+                          <img
+                            src={image}
+                            alt={product.name}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          />
                         ) : (
-                          <span className="text-sm text-slate-500">No image</span>
+                          <span className="text-sm text-zen-800/40">No image</span>
                         )}
                       </div>
                       <div className="p-4">
-                        <h2 className="font-semibold">{product.name}</h2>
-                        <p className="text-sm text-slate-600">{product.brand}</p>
+                        <p className="text-xs font-medium uppercase tracking-wide text-gold">
+                          {product.brand}
+                        </p>
+                        <h2 className="mt-1 font-medium text-zen-900 group-hover:text-primary">
+                          {product.name}
+                        </h2>
                       </div>
                     </Link>
                   );
@@ -298,23 +327,25 @@ function ShopContent() {
 
             {productPage && productPage.totalPages > 1 && (
               <div className="flex items-center gap-3">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={page <= 0}
                   onClick={() => updateParams({ page: String(page - 1) })}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
                   Previous
-                </button>
-                <span className="text-sm text-slate-600">
+                </Button>
+                <span className="text-sm text-zen-800/60">
                   Page {page + 1} of {productPage.totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={productPage.last}
                   onClick={() => updateParams({ page: String(page + 1) })}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -326,7 +357,14 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<p>Loading shop...</p>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center gap-3 text-zen-800/70">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          Loading shop...
+        </div>
+      }
+    >
       <ShopContent />
     </Suspense>
   );

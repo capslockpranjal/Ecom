@@ -8,9 +8,10 @@ import {
   ProductDetail,
   ProductVariation,
 } from "@/lib/api";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 
 export default function ProductPage() {
   const params = useParams<{ productId: string }>();
@@ -57,90 +58,102 @@ export default function ProductPage() {
     }
   }
 
-  if (loading) return <p>Loading product...</p>;
-  if (!product) return <p className="text-red-600">{error || "Product not found"}</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 text-zen-800/70">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        Loading product...
+      </div>
+    );
+  }
+  if (!product) {
+    return (
+      <p className="rounded-lg bg-red-50 px-4 py-3 text-red-700">
+        {error || "Product not found"}
+      </p>
+    );
+  }
 
   const image = imageUrl(selectedVariation?.primaryImage);
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex h-80 items-center justify-center bg-slate-100">
+      <div className="overflow-hidden zenvy-card">
+        <div className="flex h-96 items-center justify-center bg-zen-100">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt={product.name} className="h-full w-full object-cover" />
           ) : (
-            <span className="text-slate-500">No image</span>
+            <span className="text-zen-800/40">No image</span>
           )}
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
-          <p className="text-sm uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
             {product.brand}
           </p>
-          <h1 className="text-3xl font-bold">{product.name}</h1>
-          <p className="mt-2 text-slate-600">{product.description}</p>
+          <h1 className="mt-2 font-display text-3xl font-semibold text-zen-900 md:text-4xl">
+            {product.name}
+          </h1>
+          <p className="mt-3 leading-relaxed text-zen-800/70">{product.description}</p>
         </div>
 
-        <div className="space-y-2">
-          <p className="font-medium">Select variation</p>
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-zen-800">Select variation</p>
           <div className="flex flex-wrap gap-2">
             {product.variations.map((variation) => (
               <button
                 key={variation.id}
                 onClick={() => setSelectedVariation(variation)}
-                className={`rounded-lg border px-3 py-2 text-sm ${
+                className={`rounded-xl border px-4 py-2.5 text-sm transition ${
                   selectedVariation?.id === variation.id
-                    ? "border-primary bg-teal-50 text-primary"
-                    : "border-slate-300"
+                    ? "border-primary bg-primary/10 font-medium text-primary"
+                    : "border-zen-200 hover:border-primary/40"
                 }`}
               >
                 {Object.entries(variation.metadata)
                   .map(([key, value]) => `${key}: ${value}`)
                   .join(", ")}{" "}
-                - ₹{variation.price}
+                — ₹{variation.price}
               </button>
             ))}
           </div>
         </div>
 
         {selectedVariation && (
-          <p className="text-sm text-slate-600">
-            In stock: {selectedVariation.quantityAvailable}
+          <p className="text-sm text-zen-800/60">
+            In stock: <span className="font-medium text-zen-900">{selectedVariation.quantityAvailable}</span>
           </p>
         )}
 
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium">Qty</label>
+          <label className="text-sm font-medium text-zen-800">Quantity</label>
           <input
             type="number"
             min={1}
             max={selectedVariation?.quantityAvailable || 1}
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
-            className="w-20 rounded-lg border border-slate-300 px-3 py-2"
+            className="zenvy-input w-24"
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {message && <p className="text-sm text-green-700">{message}</p>}
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        )}
+        {message && (
+          <p className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary-dark">{message}</p>
+        )}
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleAddToCart}
-            disabled={!selectedVariation}
-            className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-white hover:bg-primary-dark"
-          >
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Button onClick={handleAddToCart} disabled={!selectedVariation}>
             Add to Cart
-          </button>
-          <Link
-            href="/cart"
-            className="rounded-lg border border-slate-300 px-5 py-2.5 font-semibold hover:bg-slate-50"
-          >
+          </Button>
+          <ButtonLink href="/cart" variant="outline">
             View Cart
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </div>

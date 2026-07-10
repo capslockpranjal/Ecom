@@ -8,9 +8,10 @@ import {
   removeCartItem,
   updateCartItem,
 } from "@/lib/api";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 
 export default function CartPage() {
   const router = useRouter();
@@ -57,19 +58,35 @@ export default function CartPage() {
     }
   }
 
-  if (loading) return <p>Loading cart...</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 text-zen-800/70">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        Loading cart...
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Your Cart</h1>
-      {error && <p className="text-red-600">{error}</p>}
+    <div className="space-y-8">
+      <PageHeader
+        title="Your Cart"
+        subtitle="Review your selections before checkout"
+      />
+
+      {error && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
 
       {!cart || cart.items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <p className="text-slate-600">Your cart is empty.</p>
-          <Link href="/shop" className="mt-4 inline-block text-primary">
-            Continue shopping
-          </Link>
+        <div className="rounded-2xl border border-dashed border-zen-200 bg-zen-50/50 p-12 text-center">
+          <p className="font-display text-xl text-zen-800/70">Your cart is empty</p>
+          <p className="mt-2 text-sm text-zen-800/50">
+            Discover something you&apos;ll love in the shop.
+          </p>
+          <ButtonLink href="/shop" className="mt-6">
+            Continue Shopping
+          </ButtonLink>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -77,11 +94,8 @@ export default function CartPage() {
             {cart.items.map((item) => {
               const image = imageUrl(item.primaryImage);
               return (
-                <div
-                  key={item.id}
-                  className="flex gap-4 rounded-xl border border-slate-200 bg-white p-4"
-                >
-                  <div className="h-24 w-24 overflow-hidden rounded-lg bg-slate-100">
+                <div key={item.id} className="flex gap-4 zenvy-card p-4 md:p-5">
+                  <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zen-100">
                     {image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -91,15 +105,17 @@ export default function CartPage() {
                       />
                     ) : null}
                   </div>
-                  <div className="flex-1">
-                    <h2 className="font-semibold">{item.productName}</h2>
-                    <p className="text-sm text-slate-600">{item.brand}</p>
-                    <p className="text-sm text-slate-600">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gold">
+                      {item.brand}
+                    </p>
+                    <h2 className="font-medium text-zen-900">{item.productName}</h2>
+                    <p className="mt-1 text-sm text-zen-800/60">
                       {Object.entries(item.metadata)
                         .map(([k, v]) => `${k}: ${v}`)
                         .join(", ")}
                     </p>
-                    <div className="mt-3 flex items-center gap-3">
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
                       <input
                         type="number"
                         min={1}
@@ -108,38 +124,37 @@ export default function CartPage() {
                         onChange={(e) =>
                           handleQuantityChange(item.id, Number(e.target.value))
                         }
-                        className="w-20 rounded-lg border border-slate-300 px-2 py-1"
+                        className="zenvy-input w-20 py-1.5 text-sm"
                       />
                       <button
                         onClick={() => handleRemove(item.id)}
-                        className="text-sm text-red-600"
+                        className="text-sm text-red-600/80 transition hover:text-red-700"
                       >
                         Remove
                       </button>
                     </div>
                   </div>
-                  <div className="font-semibold">₹{item.lineTotal}</div>
+                  <div className="shrink-0 font-display text-lg font-semibold text-zen-900">
+                    ₹{item.lineTotal}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="h-fit rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold">Order Summary</h2>
-            <div className="mt-4 flex justify-between text-sm">
+          <div className="zenvy-card h-fit p-6">
+            <h2 className="font-display text-xl font-semibold text-zen-900">Order Summary</h2>
+            <div className="mt-5 flex justify-between text-sm text-zen-800/70">
               <span>Items ({cart.itemCount})</span>
               <span>₹{cart.subtotal}</span>
             </div>
-            <div className="mt-2 flex justify-between border-t border-slate-200 pt-3 font-semibold">
+            <div className="mt-3 flex justify-between border-t border-zen-100 pt-4 font-display text-lg font-semibold text-zen-900">
               <span>Total</span>
               <span>₹{cart.subtotal}</span>
             </div>
-            <Link
-              href="/checkout"
-              className="mt-5 block rounded-lg bg-primary px-4 py-2.5 text-center font-semibold text-white hover:bg-primary-dark"
-            >
+            <ButtonLink href="/checkout" className="mt-6 w-full">
               Proceed to Checkout
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       )}

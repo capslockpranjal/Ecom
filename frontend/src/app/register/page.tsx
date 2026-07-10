@@ -3,6 +3,8 @@
 import { registerCustomer } from "@/lib/api";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { AuthCard } from "@/components/ui/AuthCard";
+import { Button } from "@/components/ui/Button";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -34,23 +36,33 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-bold">Create Customer Account</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Register to shop on Zenvy. You will receive an activation email.
-      </p>
-
-      <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
+    <AuthCard
+      title="Join Zenvy"
+      subtitle="Create your account and start discovering curated products."
+      footer={
+        <p className="text-center text-sm text-zen-800/70">
+          Already registered?{" "}
+          <Link href="/login" className="font-medium text-primary hover:underline">
+            Sign in
+          </Link>
+          {" · "}
+          <Link href="/register/seller" className="font-medium text-primary hover:underline">
+            Register as seller
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
         {[
           ["firstName", "First name"],
           ["lastName", "Last name"],
           ["email", "Email", "email"],
-          ["contact", "Contact (10 digits"],
+          ["contact", "Contact (10 digits)"],
           ["password", "Password", "password"],
           ["confirmPassword", "Confirm password", "password"],
         ].map(([key, label, type = "text"]) => (
           <div key={key} className={key === "email" ? "md:col-span-2" : ""}>
-            <label className="mb-1 block text-sm font-medium">{label}</label>
+            <label className="zenvy-label">{label}</label>
             <input
               type={type}
               required
@@ -58,37 +70,26 @@ export default function RegisterPage() {
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, [key]: e.target.value }))
               }
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="zenvy-input"
             />
           </div>
         ))}
 
         {error && (
-          <p className="md:col-span-2 text-sm text-red-600">{error}</p>
+          <p className="md:col-span-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
         )}
         {message && (
-          <p className="md:col-span-2 text-sm text-green-700">{message}</p>
+          <p className="md:col-span-2 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary-dark">
+            {message}
+          </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="md:col-span-2 rounded-lg bg-primary px-4 py-2.5 font-semibold text-white hover:bg-primary-dark"
-        >
-          {loading ? "Creating account..." : "Register"}
-        </button>
+        <Button type="submit" disabled={loading} className="md:col-span-2 w-full">
+          {loading ? "Creating account..." : "Create account"}
+        </Button>
       </form>
-
-      <p className="mt-4 text-sm text-slate-600">
-        Already registered?{" "}
-        <Link href="/login" className="font-medium text-primary">
-          Login
-        </Link>
-        {" · "}
-        <Link href="/register/seller" className="font-medium text-primary">
-          Register as seller
-        </Link>
-      </p>
-    </div>
+    </AuthCard>
   );
 }

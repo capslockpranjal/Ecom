@@ -4,7 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearTokens, isLoggedIn } from "@/lib/api";
 import { getRoles, isAdmin, isCustomer, isSeller } from "@/lib/auth";
+import { Logo } from "@/components/Logo";
 import { useEffect, useState } from "react";
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(`${href}/`);
+
+  return (
+    <Link
+      href={href}
+      className={active ? "zenvy-nav-link zenvy-nav-link-active" : "zenvy-nav-link"}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -23,90 +38,59 @@ export function Navbar() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-xl font-bold text-primary">
-          Zenvy
-        </Link>
-        <nav className="flex flex-wrap items-center justify-end gap-3 text-sm font-medium">
+    <header className="sticky top-0 z-50 border-b border-zen-200/80 bg-white/90 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 md:px-6">
+        <Logo showTagline />
+
+        <nav className="flex flex-wrap items-center justify-end gap-1 text-sm">
           {loggedIn ? (
             <>
               {isCustomer() && (
                 <>
-                  <Link href="/shop" className="hover:text-primary">
-                    Shop
-                  </Link>
-                  <Link href="/cart" className="hover:text-primary">
-                    Cart
-                  </Link>
-                  <Link href="/orders" className="hover:text-primary">
-                    Orders
-                  </Link>
-                  <Link href="/returns" className="hover:text-primary">
-                    Returns
-                  </Link>
-                  <Link href="/profile" className="hover:text-primary">
-                    Profile
-                  </Link>
-                  <Link href="/addresses" className="hover:text-primary">
-                    Addresses
-                  </Link>
+                  <NavLink href="/shop">Shop</NavLink>
+                  <NavLink href="/cart">Cart</NavLink>
+                  <NavLink href="/orders">Orders</NavLink>
+                  <NavLink href="/returns">Returns</NavLink>
+                  <NavLink href="/profile">Profile</NavLink>
+                  <NavLink href="/addresses">Addresses</NavLink>
                 </>
               )}
               {isSeller() && (
                 <>
-                  <Link href="/seller/products" className="hover:text-primary">
-                    Products
-                  </Link>
-                  <Link href="/seller/orders" className="hover:text-primary">
-                    Orders
-                  </Link>
-                  <Link href="/seller/returns" className="hover:text-primary">
-                    Returns
-                  </Link>
+                  <NavLink href="/seller/products">Products</NavLink>
+                  <NavLink href="/seller/orders">Orders</NavLink>
+                  <NavLink href="/seller/returns">Returns</NavLink>
                 </>
               )}
               {isAdmin() && (
                 <>
-                  <Link href="/admin/customers" className="hover:text-primary">
-                    Customers
-                  </Link>
-                  <Link href="/admin/sellers" className="hover:text-primary">
-                    Sellers
-                  </Link>
-                  <Link href="/admin/products" className="hover:text-primary">
-                    Products
-                  </Link>
-                  <Link href="/admin/categories" className="hover:text-primary">
-                    Categories
-                  </Link>
-                  <Link href="/admin/orders" className="hover:text-primary">
-                    Orders
-                  </Link>
+                  <NavLink href="/admin/customers">Customers</NavLink>
+                  <NavLink href="/admin/sellers">Sellers</NavLink>
+                  <NavLink href="/admin/products">Products</NavLink>
+                  <NavLink href="/admin/categories">Categories</NavLink>
+                  <NavLink href="/admin/orders">Orders</NavLink>
                 </>
               )}
               {roles.length > 0 && (
-                <span className="hidden text-xs text-slate-500 sm:inline">
+                <span className="hidden rounded-full bg-zen-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-zen-800/60 lg:inline">
                   {roles.map((r) => r.replace("ROLE_", "")).join(" · ")}
                 </span>
               )}
               <button
                 onClick={logout}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50"
+                className="zenvy-nav-link ml-1 border border-zen-200"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:text-primary">
-                Login
-              </Link>
+              <NavLink href="/login">Login</NavLink>
               <Link
                 href="/register"
-                className="rounded-lg bg-primary px-3 py-1.5 text-white hover:bg-primary-dark"
+                className="ml-1 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-zen transition hover:bg-primary-dark"
               >
-                Register
+                Join Zenvy
               </Link>
             </>
           )}

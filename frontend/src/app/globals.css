@@ -3,10 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f7f8f5;
+  --foreground: #1a2620;
+  --card: #ffffff;
+  --border: #d8ddd2;
+  --muted: #5c6b62;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-zen-50 font-sans text-zen-900 antialiased;
+}
+
+@layer components {
+  .zenvy-card {
+    @apply rounded-2xl border border-zen-200 bg-white shadow-zen;
+  }
+
+  .zenvy-input {
+    @apply w-full rounded-xl border border-zen-200 bg-zen-50/50 px-4 py-2.5 text-zen-900 transition placeholder:text-zen-300 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20;
+  }
+
+  .zenvy-label {
+    @apply mb-1.5 block text-sm font-medium text-zen-800;
+  }
+
+  .zenvy-page-title {
+    @apply font-display text-3xl font-semibold tracking-tight text-zen-900 md:text-4xl;
+  }
+
+  .zenvy-page-subtitle {
+    @apply mt-2 text-zen-800/70;
+  }
+
+  .zenvy-nav-link {
+    @apply rounded-lg px-3 py-1.5 text-sm font-medium text-zen-800/80 transition hover:bg-zen-100 hover:text-primary;
+  }
+
+  .zenvy-nav-link-active {
+    @apply bg-zen-100 text-primary;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
