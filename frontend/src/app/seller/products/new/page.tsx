@@ -1,16 +1,15 @@
 "use client";
 
-import { createProduct, getSellerCategories, isLoggedIn } from "@/lib/api";
+import { createProduct, getSellerCategories, isLoggedIn, CategoryTree } from "@/lib/api";
 import { isSeller } from "@/lib/auth";
+import { formatCategoryLabel, sortCategoriesByTreeOrder } from "@/lib/categories";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 export default function NewProductPage() {
   const router = useRouter();
-  const [categories, setCategories] = useState<
-    { id: string; name: string; metadataFields: { name: string; values: string[] }[] }[]
-  >([]);
+  const [categories, setCategories] = useState<CategoryTree[]>([]);
   const [form, setForm] = useState({
     name: "",
     brand: "",
@@ -34,21 +33,7 @@ export default function NewProductPage() {
     }
 
     getSellerCategories()
-      .then((cats) => {
-        const flat = cats.flatMap((c) => [
-          {
-            id: c.id,
-            name: c.name,
-            metadataFields: c.metadataFields || [],
-          },
-          ...c.children.map((ch) => ({
-            id: ch.id,
-            name: `— ${ch.name}`,
-            metadataFields: c.metadataFields || [],
-          })),
-        ]);
-        setCategories(flat);
-      })
+      .then((cats) => setCategories(sortCategoriesByTreeOrder(cats)))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load categories"))
       .finally(() => setLoading(false));
   }, [router]);
@@ -106,9 +91,9 @@ export default function NewProductPage() {
             className="w-full rounded-lg border border-slate-300 px-3 py-2"
           >
             <option value="">Select category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {formatCategoryLabel(category)}
               </option>
             ))}
           </select>

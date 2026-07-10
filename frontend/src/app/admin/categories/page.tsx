@@ -8,6 +8,11 @@ import {
   updateCategoryName,
 } from "@/lib/api";
 import { isAdmin } from "@/lib/auth";
+import {
+  formatCategoryLabel,
+  formatParentChain,
+  sortCategoriesByTreeOrder,
+} from "@/lib/categories";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
@@ -68,10 +73,7 @@ export default function AdminCategoriesPage() {
 
   if (loading) return <p>Loading categories...</p>;
 
-  const flatCategories = categories.flatMap((c) => [
-    { id: c.id, name: c.name },
-    ...c.children.map((ch) => ({ id: ch.id, name: `— ${ch.name}` })),
-  ]);
+  const sortedCategories = sortCategoriesByTreeOrder(categories);
 
   return (
     <div className="space-y-6">
@@ -106,9 +108,9 @@ export default function AdminCategoriesPage() {
             className="rounded-lg border border-slate-300 px-3 py-2"
           >
             <option value="">None (root)</option>
-            {flatCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {sortedCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {formatCategoryLabel(category)}
               </option>
             ))}
           </select>
@@ -125,10 +127,13 @@ export default function AdminCategoriesPage() {
       {error && <p className="text-red-600">{error}</p>}
 
       <div className="space-y-3">
-        {categories.map((cat) => (
+        {sortedCategories.map((cat) => (
           <div key={cat.id} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center justify-between">
-              <p className="font-semibold">{cat.name}</p>
+              <div>
+                <p className="font-semibold">{formatCategoryLabel(cat)}</p>
+                <p className="text-xs text-slate-500">{formatParentChain(cat)}</p>
+              </div>
               <button
                 onClick={() => handleRename(cat.id, cat.name)}
                 className="text-sm text-primary"
@@ -137,24 +142,18 @@ export default function AdminCategoriesPage() {
               </button>
             </div>
             {cat.children.length > 0 && (
-              <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                {cat.children.map((child) => (
-                  <li key={child.id} className="flex items-center justify-between">
-                    <span>{child.name}</span>
-                    <button
-                      onClick={() => handleRename(child.id, child.name)}
-                      className="text-primary"
-                    >
-                      Rename
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <p className="mt-2 text-sm text-slate-600">
+                Children: {cat.children.map((child) => child.name).join(", ")}
+              </p>
             )}
             {cat.metadataFields.length > 0 && (
-              <p className="mt-2 text-xs text-slate-500">
-                Metadata: {cat.metadataFields.map((f) => f.name).join(", ")}
-              </p>
+              <div className="mt-2 space-y-1 text-xs text-slate-500">
+                {cat.metadataFields.map((field) => (
+                  <p key={field.fieldId}>
+                    {field.name}: {field.values.join(", ")}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
         ))}
