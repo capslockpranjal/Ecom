@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,6 +37,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
@@ -57,6 +59,9 @@ class CategoryServiceImplTest {
 
     @Mock
     private CustomerRepository customerRepository;
+
+    @Mock
+    private ObjectProvider<CategoryServiceImpl> selfProvider;
 
     @InjectMocks
     private CategoryServiceImpl categoryService;
@@ -86,6 +91,8 @@ class CategoryServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities())
         );
+
+        lenient().when(selfProvider.getObject()).thenReturn(categoryService);
     }
 
     @AfterEach

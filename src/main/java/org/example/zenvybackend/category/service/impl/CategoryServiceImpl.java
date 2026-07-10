@@ -2,6 +2,10 @@ package org.example.zenvybackend.category.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.zenvybackend.common.cache.CacheKeyBuilder;
+import org.example.zenvybackend.common.cache.CacheNames;
+import org.example.zenvybackend.common.cache.CategoryTreePage;
+import org.example.zenvybackend.common.cache.EvictCatalogReadCaches;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.exception.UnauthorizedException;
@@ -16,6 +20,8 @@ import org.example.zenvybackend.product.repository.ProductVariationRepository;
 import org.example.zenvybackend.security.util.SecurityUtil;
 import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.repository.CustomerRepository;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +40,12 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMetadataFieldValuesRepository valuesRepository;
     private final ProductVariationRepository productVariationRepository;
     private final CustomerRepository customerRepository;
+    private final ObjectProvider<CategoryServiceImpl> selfProvider;
 
 
     @Override
     @Transactional
+    @EvictCatalogReadCaches
     public UUID createCategory(CreateCategoryRequest request) {
 
         if (request.getName() == null || request.getName().isBlank()) {
@@ -85,6 +93,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Page<CategoryTreeResponse> getCategories(UUID categoryId, PageRequestDto dto) {
+        return selfProvider.getObject().loadCategories(categoryId, dto).toPage();
+    }
+
+    @Cacheable(
+            value = CacheNames.CATEGORIES,
+            key = "T(org.example.zenvybackend.common.cache.CacheKeyBuilder).categories(#categoryId, #dto)"
+    )
+    public CategoryTreePage loadCategories(UUID categoryId, PageRequestDto dto) {
 
         Pageable pageable = PageUtils.getPageable(dto, List.of("name", "id"));
 
@@ -111,12 +127,13 @@ public class CategoryServiceImpl implements CategoryService {
             }
         }
 
-        return categories.map(this::buildCategoryTree);
+        return CategoryTreePage.from(categories.map(this::buildCategoryTree));
     }
 
 
     @Override
     @Transactional
+    @EvictCatalogReadCaches
     public void updateCategory(UUID categoryId, UpdateCategoryRequest request) {
 
         if (request.getName() == null || request.getName().isBlank()) {
@@ -146,6 +163,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @EvictCatalogReadCaches
     public UUID addMetadataField(String name) {
 
         if (name == null || name.isBlank())
@@ -182,6 +200,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @EvictCatalogReadCaches
     public void addMetadataValues(UUID categoryId, List<AddMetadataValueRequest> requests) {
 
         Category category = categoryRepository.findById(categoryId)
@@ -301,6 +320,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CustomerCategoryResponse> getCustomerCategories(UUID categoryId) {
         getCurrentActiveCustomer();
+        return selfProvider.getObject().loadCustomerCategories(categoryId);
+    }
+
+    @Cacheable(
+            value = CacheNames.CUSTOMER_CATEGORIES,
+            key = "T(org.example.zenvybackend.common.cache.CacheKeyBuilder).customerCategories(#categoryId)"
+    )
+    public List<CustomerCategoryResponse> loadCustomerCategories(UUID categoryId) {
 
         List<Category> categories;
 
@@ -315,7 +342,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         return categories.stream()
                 .map(this::buildCustomerCategoryResponse)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private CustomerCategoryResponse buildCustomerCategoryResponse(Category category) {
@@ -334,7 +361,7 @@ public class CategoryServiceImpl implements CategoryService {
                                 Arrays.asList(v.getMetadataValues().split(","))
                         )))
                         .build())
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
 
         // 🔹 Brands (ALL categories)
         List<String> brands = new ArrayList<>();
@@ -343,7 +370,7 @@ public class CategoryServiceImpl implements CategoryService {
             brands.addAll(productRepository.findDistinctBrandsByCategory(cat));
         }
 
-        brands = brands.stream().distinct().toList();
+        brands = brands.stream().distinct().collect(Collectors.toCollection(ArrayList::new));
 
         // 🔹 Price (ALL categories)
         Double minPrice = Double.MAX_VALUE;
@@ -375,6 +402,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public FilteringResponse getFilteringData(UUID categoryId) {
         getCurrentActiveCustomer();
+        return selfProvider.getObject().loadFilteringData(categoryId);
+    }
+
+    @Cacheable(
+            value = CacheNames.CATEGORY_FILTERS,
+            key = "T(org.example.zenvybackend.common.cache.CacheKeyBuilder).categoryFilters(#categoryId)"
+    )
+    public FilteringResponse loadFilteringData(UUID categoryId) {
 
         if (categoryId == null) {
             throw new BadRequestException("CategoryId is required");
@@ -411,7 +446,8 @@ public class CategoryServiceImpl implements CategoryService {
                     UUID fieldId = v.getField().getId();
 
                     Set<String> allowed = allowedMap.getOrDefault(fieldName, new HashSet<>());
-                    List<String> finalValues = allowed.stream().toList();
+                    List<String> finalValues = allowed.stream()
+                            .collect(Collectors.toCollection(ArrayList::new));
 
                     return MetadataFieldResponse.builder()
                             .fieldId(fieldId)
@@ -419,7 +455,7 @@ public class CategoryServiceImpl implements CategoryService {
                             .values(finalValues)
                             .build();
                 })
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
 
         //  4. BRANDS (ALL categories)
         List<String> brands = new ArrayList<>();
@@ -428,7 +464,7 @@ public class CategoryServiceImpl implements CategoryService {
             brands.addAll(productRepository.findDistinctBrandsByCategory(cat));
         }
 
-        brands = brands.stream().distinct().toList();
+        brands = brands.stream().distinct().collect(Collectors.toCollection(ArrayList::new));
 
         //  5. PRICE RANGE
         Double min = null;

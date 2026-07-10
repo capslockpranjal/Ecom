@@ -306,10 +306,11 @@ async function refreshAccessToken(): Promise<boolean> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/auth/refresh?refreshToken=${encodeURIComponent(refreshToken)}`,
-          { method: "POST" }
-        );
+        const response = await fetch(`${API_URL}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
         if (!response.ok) return false;
         const body: ApiResponse<AuthTokens> = await response.json();
         setTokens(body.data);

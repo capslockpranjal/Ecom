@@ -11,6 +11,7 @@ import org.example.zenvybackend.category.dto.request.PageRequestDto;
 import org.example.zenvybackend.category.dto.response.ParentCategoryResponse;
 import org.example.zenvybackend.category.entity.Category;
 import org.example.zenvybackend.category.repository.CategoryRepository;
+import org.example.zenvybackend.common.cache.EvictProductReadCaches;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.response.PagedResponse;
@@ -288,6 +289,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @EvictProductReadCaches
     public void activateProduct(UUID productId) {
         Product product = productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -308,6 +310,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @EvictProductReadCaches
     public void deactivateProduct(UUID productId) {
         Product product = productRepository.findByIdAndIsDeletedFalse(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));

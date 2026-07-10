@@ -103,9 +103,10 @@ public class AuthController {
 
 
     @PostMapping("/refresh")
-    public ApiResponse<AuthResponse> refreshToken(@RequestParam String refreshToken){
+    public ApiResponse<AuthResponse> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request){
 
-        AuthResponse response = authService.refreshToken(refreshToken);
+        AuthResponse response = authService.refreshToken(request.getRefreshToken());
 
         return ApiResponse.success(messageResolver.get("response.auth.tokens.refreshed", "New tokens generated"), response);
     }

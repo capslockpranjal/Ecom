@@ -43,6 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -63,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -104,6 +106,9 @@ class ProductServiceImplTest {
     @Mock
     private ImageStorageService imageStorageService;
 
+    @Mock
+    private ObjectProvider<ProductServiceImpl> selfProvider;
+
     @InjectMocks
     private ProductServiceImpl productService;
 
@@ -136,6 +141,8 @@ class ProductServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities())
         );
+
+        lenient().when(selfProvider.getObject()).thenReturn(productService);
     }
 
     @AfterEach

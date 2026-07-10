@@ -10,6 +10,10 @@ import org.example.zenvybackend.category.entity.Category;
 import org.example.zenvybackend.category.entity.CategoryMetadataFieldValues;
 import org.example.zenvybackend.category.repository.CategoryMetadataFieldValuesRepository;
 import org.example.zenvybackend.category.repository.CategoryRepository;
+import org.example.zenvybackend.common.cache.CacheKeyBuilder;
+import org.example.zenvybackend.common.cache.CacheNames;
+import org.example.zenvybackend.common.cache.CustomerProductListPage;
+import org.example.zenvybackend.common.cache.EvictProductReadCaches;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.exception.UnauthorizedException;
@@ -37,6 +41,8 @@ import org.example.zenvybackend.user.entity.Customer;
 import org.example.zenvybackend.user.entity.Seller;
 import org.example.zenvybackend.user.repository.CustomerRepository;
 import org.example.zenvybackend.user.repository.SellerRepository;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,6 +50,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -75,6 +82,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final ObjectMapper objectMapper;
     private final ImageStorageService imageStorageService;
+    private final ObjectProvider<ProductServiceImpl> selfProvider;
 
     @Override
     public UUID addProduct(AddProductRequest request) {
@@ -127,6 +135,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @EvictProductReadCaches
     public void addVariation(AddProductVariationRequest request, MultipartFile primaryImageFile, List<MultipartFile> secondaryImageFiles) {
         Seller seller = getCurrentActiveSeller();
         Product product = getOwnedProduct(request.getProductId(), seller);
@@ -184,6 +193,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @EvictProductReadCaches
     public void updateProduct(UUID productId, UpdateProductRequest request) {
         Seller seller = getCurrentActiveSeller();
         Product product = getOwnedProduct(productId, seller);
@@ -235,6 +245,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @EvictProductReadCaches
     public void updateVariation(UUID variationId, UpdateProductVariationRequest request, MultipartFile primaryImageFile, List<MultipartFile> secondaryImageFiles) {
         Seller seller = getCurrentActiveSeller();
         ProductVariation variation = getOwnedVariation(variationId, seller);
@@ -326,6 +337,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @EvictProductReadCaches
     public void deleteProduct(UUID productId) {
         Seller seller = getCurrentActiveSeller();
         Product product = getOwnedProduct(productId, seller);
@@ -396,6 +408,11 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public CustomerProductDetailResponse getCustomerProduct(UUID productId) {
         getCurrentActiveCustomer();
+        return selfProvider.getObject().loadCustomerProduct(productId);
+    }
+
+    @Cacheable(value = CacheNames.CUSTOMER_PRODUCT_DETAIL, key = "#productId")
+    public CustomerProductDetailResponse loadCustomerProduct(UUID productId) {
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -429,6 +446,18 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public Object getCustomerProducts(UUID categoryId, PageRequestDto dto, CustomerProductFilterDto filter) {
         getCurrentActiveCustomer();
+        return selfProvider.getObject().loadCustomerProducts(categoryId, dto, filter).toPage();
+    }
+
+    @Cacheable(
+            value = CacheNames.CUSTOMER_PRODUCTS,
+            key = "T(org.example.zenvybackend.common.cache.CacheKeyBuilder).customerProducts(#categoryId, #dto, #filter)"
+    )
+    public CustomerProductListPage loadCustomerProducts(
+            UUID categoryId,
+            PageRequestDto dto,
+            CustomerProductFilterDto filter
+    ) {
 
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
@@ -456,22 +485,33 @@ public class ProductServiceImpl implements ProductService {
         )
                 : productRepository.findActiveCustomerVisibleProductsByCategories(categories, pageable);
 
-        return productPage.map(product -> CustomerProductListItemResponse.builder()
-                        .id(product.getId())
-                        .name(product.getName())
-                        .description(product.getDescription())
-                        .brand(product.getBrand())
-                        .isCancellable(product.getIsCancellable())
-                        .isReturnable(product.getIsReturnable())
-                        .category(buildCustomerCategory(product.getCategory()))
-                        .primaryImages(getPrimaryImages(product))
-                        .build());
+        return CustomerProductListPage.from(productPage.map(product -> CustomerProductListItemResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .brand(product.getBrand())
+                .isCancellable(product.getIsCancellable())
+                .isReturnable(product.getIsReturnable())
+                .category(buildCustomerCategory(product.getCategory()))
+                .primaryImages(getPrimaryImages(product))
+                .build()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Object getSimilarCustomerProducts(UUID productId, PageRequestDto dto) {
         getCurrentActiveCustomer();
+        return selfProvider.getObject().loadSimilarCustomerProducts(productId, dto).toPage();
+    }
+
+    @Cacheable(
+            value = CacheNames.SIMILAR_PRODUCTS,
+            key = "T(org.example.zenvybackend.common.cache.CacheKeyBuilder).similarProducts(#productId, #dto)"
+    )
+    public CustomerProductListPage loadSimilarCustomerProducts(
+            UUID productId,
+            PageRequestDto dto
+    ) {
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -482,7 +522,7 @@ public class ProductServiceImpl implements ProductService {
 
         Pageable pageable = PageUtils.getPageable(dto, CUSTOMER_PRODUCT_SORT_FIELDS);
 
-        return productRepository.findSimilarActiveCustomerVisibleProducts(product.getCategory(), product.getId(), pageable)
+        return CustomerProductListPage.from(productRepository.findSimilarActiveCustomerVisibleProducts(product.getCategory(), product.getId(), pageable)
                 .map(similarProduct -> CustomerProductListItemResponse.builder()
                         .id(similarProduct.getId())
                         .name(similarProduct.getName())
@@ -492,7 +532,7 @@ public class ProductServiceImpl implements ProductService {
                         .isReturnable(similarProduct.getIsReturnable())
                         .category(buildCustomerCategory(similarProduct.getCategory()))
                         .primaryImages(getPrimaryImages(similarProduct))
-                        .build());
+                        .build()));
     }
 
     private Seller getCurrentActiveSeller() {
@@ -630,7 +670,7 @@ public class ProductServiceImpl implements ProductService {
                 .map(variation -> imageStorageService.getVariationPrimaryImageUrl(product.getId(), variation.getId()))
                 .filter(java.util.Objects::nonNull)
                 .distinct()
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void storeVariationImages(
