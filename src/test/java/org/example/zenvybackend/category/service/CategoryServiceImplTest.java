@@ -1,5 +1,6 @@
 package org.example.zenvybackend.category.service;
 
+import org.example.zenvybackend.category.dto.request.AddMetadataValueRequest;
 import org.example.zenvybackend.category.dto.response.CustomerCategoryResponse;
 import org.example.zenvybackend.category.dto.response.FilteringResponse;
 import org.example.zenvybackend.category.entity.Category;
@@ -10,6 +11,7 @@ import org.example.zenvybackend.category.repository.CategoryMetadataFieldReposit
 import org.example.zenvybackend.category.repository.CategoryMetadataFieldValuesRepository;
 import org.example.zenvybackend.category.repository.CategoryRepository;
 import org.example.zenvybackend.category.service.impl.CategoryServiceImpl;
+import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.exception.UnauthorizedException;
 import org.example.zenvybackend.product.repository.ProductRepository;
@@ -36,6 +38,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
 
@@ -120,7 +123,7 @@ class CategoryServiceImplTest {
         when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findByParentCategoryIsNullAndIsDeletedFalse()).thenReturn(List.of(root));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(root)).thenReturn(List.of());
-        when(valuesRepository.findByCategoryWithField(root)).thenReturn(List.of(values));
+        when(valuesRepository.findByCategoriesWithField(anyList())).thenReturn(List.of(values));
         when(productRepository.findDistinctBrandsByCategory(root)).thenReturn(List.of("Nike"));
         when(productVariationRepository.findMinPriceByCategory(root)).thenReturn(10.0);
         when(productVariationRepository.findMaxPriceByCategory(root)).thenReturn(100.0);
@@ -166,7 +169,7 @@ class CategoryServiceImplTest {
         when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.findByParentCategoryAndIsDeletedFalse(category)).thenReturn(List.of());
-        when(valuesRepository.findByCategoryWithField(category)).thenReturn(List.of(values));
+        when(valuesRepository.findByCategoriesWithField(anyList())).thenReturn(List.of(values));
         when(productRepository.findDistinctBrandsByCategory(category)).thenReturn(List.of("Nike"));
         when(productVariationRepository.findMinPriceByCategory(category)).thenReturn(50.0);
         when(productVariationRepository.findMaxPriceByCategory(category)).thenReturn(120.0);
@@ -179,6 +182,87 @@ class CategoryServiceImplTest {
         assertEquals(1, response.getMetadata().size());
         assertEquals("size", response.getMetadata().get(0).getName());
         assertEquals(List.of("S", "M", "L"), response.getMetadata().get(0).getValues());
+    }
+
+    @Test
+    void addMetadataValues_rejectsNonLeafCategory() {
+        UUID categoryId = UUID.randomUUID();
+
+        Category parent = new Category();
+        parent.setId(categoryId);
+        parent.setName("Fashion");
+
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(parent));
+        when(categoryRepository.existsByParentCategoryAndIsDeletedFalse(parent)).thenReturn(true);
+
+        AddMetadataValueRequest request = new AddMetadataValueRequest();
+        request.setFieldId(UUID.randomUUID());
+        request.setValues(List.of("S"));
+
+        assertThrows(
+                BadRequestException.class,
+                () -> categoryService.addMetadataValues(categoryId, List.of(request))
+        );
+    }
+
+    @Test
+    void getFilteringData_aggregatesMetadataFromLeafDescendants() {
+        UUID parentId = UUID.randomUUID();
+        UUID childId = UUID.randomUUID();
+
+        Category parent = new Category();
+        parent.setId(parentId);
+        parent.setName("Fashion");
+
+        Category child = new Category();
+        child.setId(childId);
+        child.setName("Shirts");
+        child.setParentCategory(parent);
+
+        CategoryMetadataField sizeField = new CategoryMetadataField();
+        sizeField.setId(UUID.randomUUID());
+        sizeField.setName("size");
+
+        CategoryMetadataField colorField = new CategoryMetadataField();
+        colorField.setId(UUID.randomUUID());
+        colorField.setName("color");
+
+        CategoryMetadataFieldValues sizeValues = CategoryMetadataFieldValues.builder()
+                .id(new CategoryMetadataFieldValuesId(childId, sizeField.getId()))
+                .category(child)
+                .field(sizeField)
+                .metadataValues("S,M")
+                .build();
+
+        CategoryMetadataFieldValues colorValues = CategoryMetadataFieldValues.builder()
+                .id(new CategoryMetadataFieldValuesId(childId, colorField.getId()))
+                .category(child)
+                .field(colorField)
+                .metadataValues("Red,Blue")
+                .build();
+
+        when(customerRepository.findByIdWithUser(customerId)).thenReturn(Optional.of(customer));
+        when(categoryRepository.findById(parentId)).thenReturn(Optional.of(parent));
+        when(categoryRepository.findByParentCategoryAndIsDeletedFalse(parent)).thenReturn(List.of(child));
+        when(categoryRepository.findByParentCategoryAndIsDeletedFalse(child)).thenReturn(List.of());
+        when(valuesRepository.findByCategoriesWithField(anyList())).thenReturn(List.of(sizeValues, colorValues));
+        when(productRepository.findDistinctBrandsByCategory(parent)).thenReturn(List.of());
+        when(productRepository.findDistinctBrandsByCategory(child)).thenReturn(List.of("Nike"));
+        when(productVariationRepository.findMinPriceByCategory(parent)).thenReturn(null);
+        when(productVariationRepository.findMaxPriceByCategory(parent)).thenReturn(null);
+        when(productVariationRepository.findMinPriceByCategory(child)).thenReturn(20.0);
+        when(productVariationRepository.findMaxPriceByCategory(child)).thenReturn(80.0);
+
+        FilteringResponse response = categoryService.getFilteringData(parentId);
+
+        assertEquals(List.of("Nike"), response.getBrands());
+        assertEquals(20.0, response.getMinPrice());
+        assertEquals(80.0, response.getMaxPrice());
+        assertEquals(2, response.getMetadata().size());
+        assertEquals("size", response.getMetadata().get(0).getName());
+        assertEquals(List.of("S", "M"), response.getMetadata().get(0).getValues());
+        assertEquals("color", response.getMetadata().get(1).getName());
+        assertEquals(List.of("Red", "Blue"), response.getMetadata().get(1).getValues());
     }
 
     @Test

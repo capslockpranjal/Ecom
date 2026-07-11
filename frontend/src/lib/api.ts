@@ -7,6 +7,19 @@ export type ApiResponse<T> = {
   timestamp?: string;
 };
 
+type ErrorResponseBody = {
+  message?: string;
+  details?: string[];
+  error?: string;
+};
+
+function formatApiError(body: ErrorResponseBody, fallback = "Request failed"): string {
+  if (body.details?.length) {
+    return body.details.join(". ");
+  }
+  return body.message || fallback;
+}
+
 export type PagedResponse<T> = {
   content: T[];
   pageNumber: number;
@@ -24,6 +37,13 @@ export type SpringPage<T> = {
   size: number;
   last: boolean;
 };
+
+/** Backend may return a raw array or a Spring Data page in ApiResponse.data. */
+function toArray<T>(data: T[] | SpringPage<T> | null | undefined): T[] {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.content)) return data.content;
+  return [];
+}
 
 export type AuthTokens = {
   accessToken: string;
@@ -43,6 +63,11 @@ export type MetadataField = {
   fieldId: string;
   name: string;
   values: string[];
+};
+
+export type MetadataFieldDefinition = {
+  id: string;
+  name: string;
 };
 
 export type FilteringData = {
@@ -360,8 +385,8 @@ async function apiFetch<T>(
   if (!response.ok) {
     let message = "Request failed";
     try {
-      const error = await response.json();
-      message = error.message || message;
+      const error: ErrorResponseBody = await response.json();
+      message = formatApiError(error);
     } catch {
       // ignore
     }
@@ -373,6 +398,71 @@ async function apiFetch<T>(
   }
 
   return response.json();
+}
+
+async function multipartFetch<T>(
+  path: string,
+  options: { method: string; body: () => FormData },
+  auth = true,
+  retry = true
+): Promise<T> {
+  const headers = new Headers();
+  if (auth) {
+    const token = getAccessToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method: options.method,
+    headers,
+    body: options.body(),
+  });
+
+  if (response.status === 401 && auth && retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return multipartFetch<T>(path, options, auth, false);
+    }
+    clearTokens();
+  }
+
+  if (!response.ok) {
+    let message = "Request failed";
+    try {
+      const error: ErrorResponseBody = await response.json();
+      message = formatApiError(error);
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json();
+}
+
+function buildVariationForm(
+  data: {
+    productId: string;
+    quantityAvailable: number;
+    price: number;
+    metadata: Record<string, string>;
+  },
+  primaryImage: File
+) {
+  const form = new FormData();
+  form.append(
+    "data",
+    new Blob([JSON.stringify(data)], { type: "application/json" }),
+    "data.json"
+  );
+  form.append("primaryImage", primaryImage, primaryImage.name || "image.jpg");
+  return form;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -656,7 +746,7 @@ export async function getOrder(orderId: string) {
 
 export async function getSellerCategories() {
   const response = await apiFetch<ApiResponse<SpringPage<CategoryTree>>>("/categories/seller?max=100");
-  return response.data.content;
+  return toArray(response.data);
 }
 
 export async function getSellerProducts(opts: { productId?: string; max?: number; offset?: number } = {}) {
@@ -668,15 +758,14 @@ export async function getSellerProducts(opts: { productId?: string; max?: number
   const response = await apiFetch<ApiResponse<SellerProduct[] | SpringPage<SellerProduct>>>(
     `/products?${params}`
   );
-  const data = response.data;
-  return Array.isArray(data) ? data : data.content;
+  return toArray(response.data);
 }
 
 export async function getSellerProductVariations(productId: string) {
-  const response = await apiFetch<ApiResponse<ProductVariation[]>>(
+  const response = await apiFetch<ApiResponse<ProductVariation[] | SpringPage<ProductVariation>>>(
     `/products/${productId}/variations`
   );
-  return response.data;
+  return toArray(response.data);
 }
 
 export async function createProduct(payload: {
@@ -717,22 +806,10 @@ export async function addVariationWithImage(
   },
   primaryImage: File
 ) {
-  const form = new FormData();
-  form.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
-  form.append("primaryImage", primaryImage);
-
-  const token = getAccessToken();
-  const response = await fetch(`${API_URL}/products/variation`, {
+  return multipartFetch<ApiResponse<string>>("/products/variation", {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
+    body: () => buildVariationForm(data, primaryImage),
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || "Failed to add variation");
-  }
-  return response.json() as Promise<ApiResponse<string>>;
 }
 
 // ── Seller orders ─────────────────────────────────────────────────────────────
@@ -842,6 +919,32 @@ export async function updateCategoryName(categoryId: string, name: string) {
   return apiFetch<ApiResponse<string>>(`/categories/${categoryId}`, {
     method: "PUT",
     body: JSON.stringify({ name }),
+  });
+}
+
+export async function getMetadataFieldDefinitions() {
+  const response = await apiFetch<ApiResponse<SpringPage<MetadataFieldDefinition>>>(
+    "/categories/metadata-field?max=100"
+  );
+  return response.data.content;
+}
+
+export async function addMetadataField(name: string) {
+  const response = await apiFetch<ApiResponse<string>>("/categories/metadata-field", {
+    method: "POST",
+    body: JSON.stringify({ name: name.trim() }),
+  });
+  return response.data;
+}
+
+export async function addCategoryMetadataValues(
+  categoryId: string,
+  fieldId: string,
+  values: string[]
+) {
+  return apiFetch<ApiResponse<null>>(`/categories/${categoryId}/metadata`, {
+    method: "POST",
+    body: JSON.stringify([{ fieldId, values }]),
   });
 }
 

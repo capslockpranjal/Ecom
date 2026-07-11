@@ -24,6 +24,19 @@ public interface SellerOrderRepository extends JpaRepository<SellerOrder, UUID> 
     );
 
     @Query("""
+            SELECT so FROM SellerOrder so
+            JOIN FETCH so.order o
+            JOIN FETCH o.customer c
+            JOIN FETCH c.user
+            JOIN FETCH so.seller
+            WHERE so.id = :id AND so.seller.userId = :sellerUserId
+            """)
+    Optional<SellerOrder> findByIdAndSellerUserIdWithDetails(
+            @Param("id") UUID id,
+            @Param("sellerUserId") UUID sellerUserId
+    );
+
+    @Query("""
             SELECT DISTINCT so FROM SellerOrder so
             LEFT JOIN FETCH so.items
             WHERE so.order.id IN :orderIds

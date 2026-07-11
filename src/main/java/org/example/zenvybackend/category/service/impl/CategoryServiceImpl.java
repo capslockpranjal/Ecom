@@ -206,6 +206,10 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
+        if (categoryRepository.existsByParentCategoryAndIsDeletedFalse(category)) {
+            throw new BadRequestException("Metadata values can only be assigned to leaf categories");
+        }
+
         for (AddMetadataValueRequest request : requests) {
 
             CategoryMetadataField field = fieldRepository.findById(request.getFieldId())
@@ -349,19 +353,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         List<Category> allCategories = getAllSubCategories(category);
 
-        // 🔹 Metadata (only current category - OK as per requirement)
-        List<CategoryMetadataFieldValues> metadataValues =
-                valuesRepository.findByCategoryWithField(category);
-
-        List<MetadataFieldResponse> metadata = metadataValues.stream()
-                .map(v -> MetadataFieldResponse.builder()
-                        .fieldId(v.getField().getId())
-                        .name(v.getField().getName())
-                        .values(new ArrayList<>(new HashSet<>(
-                                Arrays.asList(v.getMetadataValues().split(","))
-                        )))
-                        .build())
-                .collect(Collectors.toCollection(ArrayList::new));
+        List<MetadataFieldResponse> metadata = aggregateMetadataFromLeafCategories(category);
 
         // 🔹 Brands (ALL categories)
         List<String> brands = new ArrayList<>();
@@ -421,41 +413,7 @@ public class CategoryServiceImpl implements CategoryService {
         //  1. Get ALL subcategories (including parent)
         List<Category> allCategories = getAllSubCategories(category);
 
-        //  2. CATEGORY METADATA (allowed fields)
-        List<CategoryMetadataFieldValues> categoryMetadata =
-                valuesRepository.findByCategoryWithField(category);
-
-        // Map: fieldName -> allowed values
-        Map<String, Set<String>> allowedMap = new HashMap<>();
-
-        for (CategoryMetadataFieldValues v : categoryMetadata) {
-
-            Set<String> values = Arrays.stream(v.getMetadataValues().split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-
-            allowedMap.put(v.getField().getName(), values);
-        }
-
-        //  3. FULL CATEGORY METADATA VALUES
-        List<MetadataFieldResponse> metadataFilters = categoryMetadata.stream()
-                .map(v -> {
-
-                    String fieldName = v.getField().getName();
-                    UUID fieldId = v.getField().getId();
-
-                    Set<String> allowed = allowedMap.getOrDefault(fieldName, new HashSet<>());
-                    List<String> finalValues = allowed.stream()
-                            .collect(Collectors.toCollection(ArrayList::new));
-
-                    return MetadataFieldResponse.builder()
-                            .fieldId(fieldId)
-                            .name(fieldName)
-                            .values(finalValues)
-                            .build();
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+        List<MetadataFieldResponse> metadataFilters = aggregateMetadataFromLeafCategories(category);
 
         //  4. BRANDS (ALL categories)
         List<String> brands = new ArrayList<>();
@@ -507,6 +465,55 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         return result;
+    }
+
+    private List<Category> getLeafDescendants(Category category) {
+        List<Category> children = categoryRepository.findByParentCategoryAndIsDeletedFalse(category);
+        if (children.isEmpty()) {
+            return List.of(category);
+        }
+
+        List<Category> leaves = new ArrayList<>();
+        for (Category child : children) {
+            leaves.addAll(getLeafDescendants(child));
+        }
+        return leaves;
+    }
+
+    private List<MetadataFieldResponse> aggregateMetadataFromLeafCategories(Category category) {
+        List<Category> leafCategories = getLeafDescendants(category);
+        if (leafCategories.isEmpty()) {
+            return List.of();
+        }
+
+        List<CategoryMetadataFieldValues> metadataValues =
+                valuesRepository.findByCategoriesWithField(leafCategories);
+
+        Map<UUID, String> fieldNames = new LinkedHashMap<>();
+        Map<UUID, LinkedHashSet<String>> valuesByField = new LinkedHashMap<>();
+
+        for (CategoryMetadataFieldValues value : metadataValues) {
+            UUID fieldId = value.getField().getId();
+            fieldNames.putIfAbsent(fieldId, value.getField().getName());
+            valuesByField
+                    .computeIfAbsent(fieldId, ignored -> new LinkedHashSet<>())
+                    .addAll(parseMetadataValues(value.getMetadataValues()));
+        }
+
+        return fieldNames.entrySet().stream()
+                .map(entry -> MetadataFieldResponse.builder()
+                        .fieldId(entry.getKey())
+                        .name(entry.getValue())
+                        .values(new ArrayList<>(valuesByField.get(entry.getKey())))
+                        .build())
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private Set<String> parseMetadataValues(String metadataValues) {
+        return Arrays.stream(metadataValues.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private Customer getCurrentActiveCustomer() {

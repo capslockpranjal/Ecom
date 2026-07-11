@@ -91,14 +91,25 @@ AND p.isActive = true
             Pageable pageable
     );
 
-    @Query("""
-        select p
-        from Product p
-        where p.isDeleted = false
-          and p.isActive = true
-          and (:seller is null or p.seller = :seller)
-          and (:category is null or p.category = :category)
-    """)
+    @Query(
+            value = """
+                select p
+                from Product p
+                join fetch p.seller s
+                join fetch s.user
+                join fetch p.category
+                where p.isDeleted = false
+                  and (:seller is null or p.seller = :seller)
+                  and (:category is null or p.category = :category)
+            """,
+            countQuery = """
+                select count(p)
+                from Product p
+                where p.isDeleted = false
+                  and (:seller is null or p.seller = :seller)
+                  and (:category is null or p.category = :category)
+            """
+    )
     Page<Product> findAdminVisibleProducts(
             @Param("seller") Seller seller,
             @Param("category") Category category,
@@ -108,6 +119,29 @@ AND p.isActive = true
     java.util.Optional<Product> findByIdAndIsDeletedFalse(UUID id);
 
     java.util.Optional<Product> findByIdAndIsDeletedFalseAndIsActiveTrue(UUID id);
+
+    @Query("""
+            select p
+            from Product p
+            join fetch p.seller s
+            join fetch s.user
+            join fetch p.category
+            where p.id = :id
+            and p.isDeleted = false
+            """)
+    java.util.Optional<Product> findByIdAndIsDeletedFalseWithDetails(@Param("id") UUID id);
+
+    @Query("""
+            select p
+            from Product p
+            join fetch p.seller s
+            join fetch s.user
+            join fetch p.category
+            where p.id = :id
+            and p.isDeleted = false
+            and p.isActive = true
+            """)
+    java.util.Optional<Product> findByIdAndIsDeletedFalseAndIsActiveTrueWithDetails(@Param("id") UUID id);
 
     @Query(
             value = """
@@ -140,3 +174,4 @@ AND p.isActive = true
     );
 
 }
+

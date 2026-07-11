@@ -51,4 +51,12 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             WHERE o.id IN :ids
             """)
     List<Order> findByIdsWithSellerOrders(@Param("ids") Collection<UUID> ids);
+
+    @Query("""
+            SELECT o FROM Order o
+            JOIN FETCH o.customer c
+            JOIN FETCH c.user
+            WHERE o.id = :id
+            """)
+    Optional<Order> findByIdWithCustomerUser(@Param("id") UUID id);
 }

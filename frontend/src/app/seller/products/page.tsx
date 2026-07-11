@@ -57,6 +57,7 @@ export default function SellerProductsPage() {
                 <th className="px-4 py-3">Brand</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -80,6 +81,14 @@ export default function SellerProductsPage() {
                     >
                       {product.isActive ? "Active" : "Pending approval"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/seller/products/${product.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {product.isActive ? "Manage variations" : "View details"}
+                    </Link>
                   </td>
                 </tr>
               ))}

@@ -21,6 +21,8 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
         SELECT MIN(pv.price)
         FROM ProductVariation pv
         WHERE pv.product.category = :category
+        AND pv.product.isDeleted = false
+        AND pv.product.isActive = true
         AND pv.isDeleted = false
         AND pv.isActive = true
         AND pv.price IS NOT NULL
@@ -32,6 +34,8 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
         SELECT MAX(pv.price)
         FROM ProductVariation pv
         WHERE pv.product.category = :category
+        AND pv.product.isDeleted = false
+        AND pv.product.isActive = true
         AND pv.isDeleted = false
         AND pv.isActive = true
         AND pv.price IS NOT NULL
@@ -43,6 +47,8 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
     SELECT MIN(pv.price) FROM ProductVariation pv
     WHERE pv.product.category.id = :categoryId
     AND pv.product.isDeleted = false
+    AND pv.product.isActive = true
+    AND pv.isDeleted = false
     AND pv.isActive = true
     AND pv.price IS NOT NULL
 """)
@@ -52,6 +58,8 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
     SELECT MAX(pv.price) FROM ProductVariation pv
     WHERE pv.product.category.id = :categoryId
     AND pv.product.isDeleted = false
+    AND pv.product.isActive = true
+    AND pv.isDeleted = false
     AND pv.isActive = true
     AND pv.price IS NOT NULL
 """)
@@ -62,6 +70,7 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
         JOIN pv.product p
         WHERE p.category.id = :categoryId
         AND p.isDeleted = false
+        AND p.isActive = true
         AND pv.isDeleted = false
         AND pv.isActive = true
     """)
@@ -71,6 +80,8 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
 SELECT pv.metadata
 FROM ProductVariation pv
 WHERE pv.product.category.id = :categoryId
+AND pv.product.isDeleted = false
+AND pv.product.isActive = true
 AND pv.isDeleted = false
 AND pv.isActive = true
 """)

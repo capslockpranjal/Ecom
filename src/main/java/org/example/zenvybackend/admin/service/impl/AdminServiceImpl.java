@@ -199,7 +199,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public void activateSeller(UUID userId) {
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithRoles(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
 
         boolean isSeller = user.getRoles()
@@ -228,7 +228,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public void deactivateSeller(UUID userId) {
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithRoles(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
 
         boolean isSeller = user.getRoles()
@@ -269,7 +269,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         if (productId != null) {
-            Product product = productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)
+            Product product = productRepository.findByIdAndIsDeletedFalseWithDetails(productId)
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
             if (seller != null && !product.getSeller().getUserId().equals(seller.getUserId())) {
@@ -291,7 +291,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @EvictProductReadCaches
     public void activateProduct(UUID productId) {
-        Product product = productRepository.findByIdAndIsDeletedFalse(productId)
+        Product product = productRepository.findByIdAndIsDeletedFalseWithDetails(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         if (Boolean.TRUE.equals(product.getIsActive())) {
@@ -312,7 +312,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @EvictProductReadCaches
     public void deactivateProduct(UUID productId) {
-        Product product = productRepository.findByIdAndIsDeletedFalse(productId)
+        Product product = productRepository.findByIdAndIsDeletedFalseWithDetails(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         if (!Boolean.TRUE.equals(product.getIsActive())) {
@@ -356,14 +356,18 @@ public class AdminServiceImpl implements AdminService {
 
     private List<ParentCategoryResponse> buildParentChain(Category category) {
         List<ParentCategoryResponse> parents = new java.util.ArrayList<>();
-        Category current = category.getParentCategory();
+        Category current = categoryRepository.findByIdWithParent(category.getId())
+                .map(Category::getParentCategory)
+                .orElse(null);
 
         while (current != null) {
             parents.add(ParentCategoryResponse.builder()
                     .id(current.getId())
                     .name(current.getName())
                     .build());
-            current = current.getParentCategory();
+            current = categoryRepository.findByIdWithParent(current.getId())
+                    .map(Category::getParentCategory)
+                    .orElse(null);
         }
 
         java.util.Collections.reverse(parents);

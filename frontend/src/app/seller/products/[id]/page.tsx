@@ -16,41 +16,112 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
+type MetadataFieldInput = {
+  name: string;
+  values: string[];
+};
+
+function asArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeMetadataFields(fields: MetadataFieldInput[]): MetadataFieldInput[] {
+  const seen = new Set<string>();
+  return fields
+    .map((field) => ({
+      name: field.name.trim(),
+      values: asArray(field.values).map((value) => value.trim()).filter(Boolean),
+    }))
+    .filter((field) => {
+      const key = field.name.toLowerCase();
+      if (!field.name || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getVariationMetadataFields(
+  categoryFields: MetadataFieldInput[],
+  variations: ProductVariation[]
+): MetadataFieldInput[] {
+  return Object.keys(variations[0]?.metadata ?? {}).map((key) => {
+    const categoryField = categoryFields.find(
+      (field) => field.name.toLowerCase() === key.toLowerCase()
+    );
+    return {
+      name: key,
+      values: categoryField?.values ?? [],
+    };
+  });
+}
+
+function getFormMetadataFields(
+  categoryFields: MetadataFieldInput[],
+  variations: ProductVariation[]
+): MetadataFieldInput[] {
+  if (variations.length > 0) {
+    return getVariationMetadataFields(categoryFields, variations);
+  }
+  return categoryFields;
+}
+
+function buildInitialMetadata(fields: MetadataFieldInput[], variations: ProductVariation[]) {
+  const initial: Record<string, string> = {};
+  getFormMetadataFields(fields, variations).forEach((field) => {
+    initial[field.name] = "";
+  });
+  return initial;
+}
+
+function sanitizeMetadata(metadata: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(metadata)
+      .map(([key, value]) => [key.trim(), String(value).trim()])
+      .filter(([key, value]) => key && value)
+  );
+}
+
+function isValidPriceInput(value: string) {
+  return /^\d+(\.\d{1,2})?$/.test(value.trim());
+}
+
+function shiftPrice(value: string, delta: number) {
+  const current = Number.parseFloat(value);
+  const next = Math.max(0, (Number.isFinite(current) ? current : 0) + delta);
+  return Number.isInteger(next) ? String(next) : next.toFixed(2);
+}
+
 export default function SellerProductDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [product, setProduct] = useState<SellerProduct | null>(null);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
-  const [metadataFields, setMetadataFields] = useState<{ name: string; values: string[] }[]>([]);
+  const [metadataFields, setMetadataFields] = useState<MetadataFieldInput[]>([]);
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [imageInputKey, setImageInputKey] = useState(0);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   async function load() {
-    const products = await getSellerProducts({ productId: params.id });
+    const products = asArray(await getSellerProducts({ productId: params.id }));
     const found = products[0];
     if (!found) throw new Error("Product not found");
     setProduct(found);
-    const vars = await getSellerProductVariations(params.id);
+    const vars = asArray(await getSellerProductVariations(params.id));
     setVariations(vars);
-    const cats = await getSellerCategories();
+    const cats = asArray(await getSellerCategories());
     const cat = cats.find((c) => c.id === found.categoryId);
-    const fields = cat?.metadataFields || [];
+    const fields = normalizeMetadataFields(asArray(cat?.metadataFields).map((field) => ({
+      name: field.name,
+      values: asArray(field.values),
+    })));
     setMetadataFields(fields);
-    if (vars[0]) {
-      const initial: Record<string, string> = {};
-      Object.keys(vars[0].metadata).forEach((k) => (initial[k] = ""));
-      setMetadata(initial);
-    } else if (fields.length > 0) {
-      const initial: Record<string, string> = {};
-      fields.forEach((f) => (initial[f.name] = ""));
-      setMetadata(initial);
-    }
+    setMetadata(buildInitialMetadata(fields, vars));
   }
 
   useEffect(() => {
@@ -93,6 +164,26 @@ export default function SellerProductDetailPage() {
       setError("Primary image is required");
       return;
     }
+
+    if (!isValidPriceInput(price)) {
+      setError("Enter a valid price with up to 2 decimal places");
+      return;
+    }
+
+    const requestMetadata = sanitizeMetadata(metadata);
+    if (Object.keys(requestMetadata).length === 0) {
+      setError("At least one metadata field is required");
+      return;
+    }
+
+    const requiredMetadataKeys =
+      variations.length > 0 ? Object.keys(variations[0]?.metadata ?? {}) : [];
+    const missingExistingKeys = requiredMetadataKeys.filter((key) => !requestMetadata[key]);
+    if (missingExistingKeys.length > 0) {
+      setError("Use the same metadata fields for all variations");
+      return;
+    }
+
     setSaving(true);
     setError("");
     try {
@@ -100,14 +191,16 @@ export default function SellerProductDetailPage() {
         {
           productId: product.id,
           quantityAvailable: quantity,
-          price,
-          metadata,
+          price: Number(price),
+          metadata: requestMetadata,
         },
         image
       );
       setMessage("Variation added");
       await load();
       setImage(null);
+      setImageInputKey((key) => key + 1);
+      setPrice("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add variation");
     } finally {
@@ -117,6 +210,8 @@ export default function SellerProductDetailPage() {
 
   if (loading) return <p>Loading product...</p>;
   if (!product) return <p className="text-red-600">{error || "Product not found"}</p>;
+
+  const formMetadataFields = getFormMetadataFields(metadataFields, variations);
 
   return (
     <div className="space-y-6">
@@ -197,7 +292,7 @@ export default function SellerProductDetailPage() {
                 )}
                 <div className="text-sm">
                   <p>
-                    {Object.entries(v.metadata)
+                    {Object.entries(v.metadata ?? {})
                       .map(([k, val]) => `${k}: ${val}`)
                       .join(", ")}
                   </p>
@@ -212,6 +307,12 @@ export default function SellerProductDetailPage() {
         )}
       </div>
 
+      {!product.isActive && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          Add variation will be available after an admin approves this product.
+        </div>
+      )}
+
       {product.isActive && (
         <form
           onSubmit={handleAddVariation}
@@ -221,15 +322,39 @@ export default function SellerProductDetailPage() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Price (₹)</label>
-              <input
-                type="number"
-                required
-                min={0}
-                step={0.01}
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              />
+              <div className="flex overflow-hidden rounded-lg border border-slate-300 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setPrice((value) => shiftPrice(value, -1))}
+                  className="border-r border-slate-300 px-3 text-lg font-medium text-slate-700 hover:bg-slate-50"
+                  aria-label="Decrease price"
+                >
+                  -
+                </button>
+                <input
+                  type="text"
+                  required
+                  inputMode="decimal"
+                  pattern="^\d+(\.\d{1,2})?$"
+                  placeholder="0"
+                  value={price}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === "" || /^\d+(\.\d{0,2})?$/.test(value)) {
+                      setPrice(value);
+                    }
+                  }}
+                  className="w-full border-0 px-3 py-2 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPrice((value) => shiftPrice(value, 1))}
+                  className="border-l border-slate-300 px-3 text-lg font-medium text-slate-700 hover:bg-slate-50"
+                  aria-label="Increase price"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Stock</label>
@@ -242,15 +367,14 @@ export default function SellerProductDetailPage() {
                 className="w-full rounded-lg border border-slate-300 px-3 py-2"
               />
             </div>
-            {metadataFields.length > 0
-              ? metadataFields.map((field) => (
+            {formMetadataFields.length > 0
+              ? formMetadataFields.map((field) => (
                   <div key={field.name}>
                     <label className="mb-1 block text-sm font-medium capitalize">
                       {field.name}
                     </label>
                     {field.values.length > 0 ? (
                       <select
-                        required
                         value={metadata[field.name] || ""}
                         onChange={(e) =>
                           setMetadata((prev) => ({ ...prev, [field.name]: e.target.value }))
@@ -266,7 +390,6 @@ export default function SellerProductDetailPage() {
                       </select>
                     ) : (
                       <input
-                        required
                         value={metadata[field.name] || ""}
                         onChange={(e) =>
                           setMetadata((prev) => ({ ...prev, [field.name]: e.target.value }))
@@ -280,7 +403,6 @@ export default function SellerProductDetailPage() {
                   <div key={key}>
                     <label className="mb-1 block text-sm font-medium capitalize">{key}</label>
                     <input
-                      required
                       value={metadata[key] || ""}
                       onChange={(e) =>
                         setMetadata((prev) => ({ ...prev, [key]: e.target.value }))
@@ -289,15 +411,16 @@ export default function SellerProductDetailPage() {
                     />
                   </div>
                 ))}
-            {metadataFields.length === 0 && Object.keys(metadata).length === 0 && variations.length === 0 && (
-              <p className="text-sm text-slate-600 sm:col-span-2">
-                Add the first variation with metadata keys matching your category (e.g. color, size).
-                Use the same keys for all variations.
+            {formMetadataFields.length === 0 && Object.keys(metadata).length === 0 && variations.length === 0 && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 sm:col-span-2">
+                No metadata fields are configured for this category. Add category metadata before
+                creating the first variation.
               </p>
             )}
             <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium">Primary image</label>
               <input
+                key={imageInputKey}
                 type="file"
                 accept="image/*"
                 required

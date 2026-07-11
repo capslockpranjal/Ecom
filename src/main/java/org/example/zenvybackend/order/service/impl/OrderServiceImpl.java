@@ -8,6 +8,9 @@ import org.example.zenvybackend.cart.service.CartService;
 import org.example.zenvybackend.common.exception.BadRequestException;
 import org.example.zenvybackend.common.exception.ResourceNotFoundException;
 import org.example.zenvybackend.common.response.PagedResponse;
+import org.example.zenvybackend.order.dto.email.OrderCancelledEmailData;
+import org.example.zenvybackend.order.dto.email.OrderPlacedEmailData;
+import org.example.zenvybackend.order.dto.email.SellerOrderStatusEmailData;
 import org.example.zenvybackend.order.dto.request.CheckoutRequest;
 import org.example.zenvybackend.order.dto.request.UpdateSellerOrderStatusRequest;
 import org.example.zenvybackend.order.dto.request.VerifyPaymentRequest;
@@ -163,7 +166,8 @@ public class OrderServiceImpl implements OrderService {
         Order detailedOrder = orderFetchHelper.getOrderWithDetails(savedOrder.getId());
 
         if (paymentStatus == PaymentStatus.PAID) {
-            orderEmailService.sendOrderPlacedEmail(detailedOrder);
+            orderFetchHelper.fetchCustomerUser(detailedOrder.getId());
+            orderEmailService.sendOrderPlacedEmail(OrderPlacedEmailData.from(detailedOrder));
         }
 
         return orderMapper.toResponse(detailedOrder);
@@ -227,7 +231,8 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         Order detailedOrder = orderFetchHelper.getOrderWithDetails(order.getId());
-        orderEmailService.sendOrderPlacedEmail(detailedOrder);
+        orderFetchHelper.fetchCustomerUser(detailedOrder.getId());
+        orderEmailService.sendOrderPlacedEmail(OrderPlacedEmailData.from(detailedOrder));
 
         return orderMapper.toResponse(detailedOrder);
     }
@@ -293,7 +298,8 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         Order detailedOrder = orderFetchHelper.getOrderWithDetails(order.getId());
-        orderEmailService.sendOrderCancelledEmail(detailedOrder);
+        orderFetchHelper.fetchCustomerUser(detailedOrder.getId());
+        orderEmailService.sendOrderCancelledEmail(OrderCancelledEmailData.from(detailedOrder));
     }
 
     @Override
@@ -339,7 +345,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void updateSellerOrderStatus(UUID sellerOrderId, UpdateSellerOrderStatusRequest request) {
         Seller seller = getCurrentSeller();
-        SellerOrder sellerOrder = sellerOrderRepository.findByIdAndSellerUserId(sellerOrderId, seller.getUserId())
+        SellerOrder sellerOrder = sellerOrderRepository.findByIdAndSellerUserIdWithDetails(sellerOrderId, seller.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller order not found"));
 
         if (sellerOrder.getOrder().getStatus() == OrderStatus.CANCELLED) {
@@ -360,9 +366,10 @@ public class OrderServiceImpl implements OrderService {
         sellerOrder.setStatus(newStatus);
         sellerOrderRepository.save(sellerOrder);
 
-        orderEmailService.sendSellerOrderStatusEmail(sellerOrder, newStatus);
+        orderEmailService.sendSellerOrderStatusEmail(SellerOrderStatusEmailData.from(sellerOrder, newStatus));
 
-        Order order = sellerOrder.getOrder();
+        Order order = orderRepository.findByIdWithSellerOrders(sellerOrder.getOrder().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         if (order.getSellerOrders().stream().allMatch(so -> so.getStatus() == SellerOrderStatus.DELIVERED)) {
             order.setStatus(OrderStatus.COMPLETED);
             orderRepository.save(order);

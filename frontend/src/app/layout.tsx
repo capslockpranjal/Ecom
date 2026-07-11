@@ -16,7 +16,7 @@ const sansFont = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Zenvy — Curated marketplace",
+  title: "Zenvy — Curated Marketplace",
   description: "Discover thoughtfully curated products in a calm, mindful shopping experience.",
 };
 

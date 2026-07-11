@@ -34,6 +34,11 @@ public class OrderFetchHelper {
         sellerOrderRepository.findByOrderIdInWithItems(List.of(orderId));
     }
 
+    public void fetchCustomerUser(UUID orderId) {
+        orderRepository.findByIdWithCustomerUser(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+    }
+
     public Order getOrderWithDetails(UUID orderId) {
         Order order = orderRepository.findByIdWithSellerOrders(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));

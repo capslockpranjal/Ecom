@@ -146,7 +146,7 @@ class AdminServiceImplTest {
 
         when(sellerRepository.findById(sellerId)).thenReturn(Optional.of(seller));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdAndIsDeletedFalseWithDetails(productId)).thenReturn(Optional.of(product));
         when(productVariationRepository.findByProductAndIsDeletedFalseAndIsActiveTrue(product)).thenReturn(List.of());
 
         Object result = adminService.getProducts(productId, sellerId, categoryId, new PageRequestDto());
@@ -187,7 +187,7 @@ class AdminServiceImplTest {
         product.setIsActive(true);
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(requestedCategory));
-        when(productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdAndIsDeletedFalseWithDetails(productId)).thenReturn(Optional.of(product));
 
         assertThrows(ResourceNotFoundException.class, () -> adminService.getProducts(productId, null, categoryId, new PageRequestDto()));
     }
@@ -216,7 +216,7 @@ class AdminServiceImplTest {
         product.setSeller(seller);
         product.setIsActive(false);
 
-        when(productRepository.findByIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdAndIsDeletedFalseWithDetails(productId)).thenReturn(Optional.of(product));
 
         adminService.activateProduct(productId);
 
@@ -235,7 +235,7 @@ class AdminServiceImplTest {
         product.setCategory(new Category());
         product.setSeller(new Seller());
 
-        when(productRepository.findByIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdAndIsDeletedFalseWithDetails(productId)).thenReturn(Optional.of(product));
 
         assertThrows(BadRequestException.class, () -> adminService.activateProduct(productId));
     }
@@ -264,7 +264,7 @@ class AdminServiceImplTest {
         product.setSeller(seller);
         product.setIsActive(true);
 
-        when(productRepository.findByIdAndIsDeletedFalse(productId)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdAndIsDeletedFalseWithDetails(productId)).thenReturn(Optional.of(product));
 
         adminService.deactivateProduct(productId);
 
@@ -277,7 +277,7 @@ class AdminServiceImplTest {
     void deactivateProduct_rejectsInvalidProductId() {
         UUID productId = UUID.randomUUID();
 
-        when(productRepository.findByIdAndIsDeletedFalse(productId)).thenReturn(Optional.empty());
+        when(productRepository.findByIdAndIsDeletedFalseWithDetails(productId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> adminService.deactivateProduct(productId));
     }

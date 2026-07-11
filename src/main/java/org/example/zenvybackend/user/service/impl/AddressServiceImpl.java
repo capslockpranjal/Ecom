@@ -30,7 +30,7 @@ public class AddressServiceImpl implements AddressService {
 
         UUID currentUserId = SecurityUtil.getCurrentUserId();
 
-        User user = userRepository.findById(currentUserId)
+        User user = userRepository.findByIdWithRoles(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Check if user is seller

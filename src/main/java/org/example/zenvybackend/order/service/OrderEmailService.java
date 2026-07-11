@@ -1,14 +1,14 @@
 package org.example.zenvybackend.order.service;
 
-import org.example.zenvybackend.order.entity.Order;
-import org.example.zenvybackend.order.entity.SellerOrder;
-import org.example.zenvybackend.order.enums.SellerOrderStatus;
+import org.example.zenvybackend.order.dto.email.OrderCancelledEmailData;
+import org.example.zenvybackend.order.dto.email.OrderPlacedEmailData;
+import org.example.zenvybackend.order.dto.email.SellerOrderStatusEmailData;
 
 public interface OrderEmailService {
 
-    void sendOrderPlacedEmail(Order order);
+    void sendOrderPlacedEmail(OrderPlacedEmailData emailData);
 
-    void sendOrderCancelledEmail(Order order);
+    void sendOrderCancelledEmail(OrderCancelledEmailData emailData);
 
-    void sendSellerOrderStatusEmail(SellerOrder sellerOrder, SellerOrderStatus newStatus);
+    void sendSellerOrderStatusEmail(SellerOrderStatusEmailData emailData);
 }

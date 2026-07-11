@@ -21,6 +21,7 @@ public class MessageResolver {
             Map.entry("Product is already active", "error.product.already_active"),
             Map.entry("Product is already inactive", "error.product.already_inactive"),
             Map.entry("Category must be a leaf category", "error.category.must_be_leaf"),
+            Map.entry("Metadata values can only be assigned to leaf categories", "error.category.metadata.leaf_only"),
             Map.entry("Product already exists", "error.product.already_exists"),
             Map.entry("Product is not active", "error.product.not_active"),
             Map.entry("Invalid metadata format", "error.metadata.invalid_format"),

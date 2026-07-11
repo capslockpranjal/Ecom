@@ -11,6 +11,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Caching(evict = {
+        @CacheEvict(cacheNames = CacheNames.CUSTOMER_CATEGORIES, allEntries = true),
+        @CacheEvict(cacheNames = CacheNames.CATEGORY_FILTERS, allEntries = true),
         @CacheEvict(cacheNames = CacheNames.CUSTOMER_PRODUCTS, allEntries = true),
         @CacheEvict(cacheNames = CacheNames.CUSTOMER_PRODUCT_DETAIL, allEntries = true),
         @CacheEvict(cacheNames = CacheNames.SIMILAR_PRODUCTS, allEntries = true)

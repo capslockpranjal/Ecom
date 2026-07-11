@@ -6,6 +6,7 @@ import org.example.zenvybackend.category.entity.CategoryMetadataFieldValues;
 import org.example.zenvybackend.category.entity.CategoryMetadataFieldValuesId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,4 +32,13 @@ public interface CategoryMetadataFieldValuesRepository
         AND v.isDeleted = false
     """)
     List<CategoryMetadataFieldValues> findByCategoryWithField(Category category);
+
+    @Query("""
+        SELECT v
+        FROM CategoryMetadataFieldValues v
+        JOIN FETCH v.field
+        WHERE v.category IN :categories
+        AND v.isDeleted = false
+    """)
+    List<CategoryMetadataFieldValues> findByCategoriesWithField(@Param("categories") List<Category> categories);
 }

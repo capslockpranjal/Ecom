@@ -91,13 +91,13 @@ export default function AdminProductsPage() {
                 </td>
                 <td className="px-4 py-3">{p.brand}</td>
                 <td className="px-4 py-3">{p.category.name}</td>
-                <td className="px-4 py-3">{p.isActive ? "Active" : "Inactive"}</td>
+                <td className="px-4 py-3">{p.isActive ? "Active" : "Pending approval"}</td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => toggleActive(p)}
                     className="text-primary hover:underline"
                   >
-                    {p.isActive ? "Deactivate" : "Activate"}
+                    {p.isActive ? "Deactivate" : "Approve"}
                   </button>
                 </td>
               </tr>
