@@ -3,8 +3,13 @@ package org.example.zenvybackend.security.util;
 import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.example.zenvybackend.user.entity.Role;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,6 +22,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Component
+@Slf4j
 public class JwtUtil {
 
     @Value("${jwt.secret}")
@@ -34,6 +40,11 @@ public class JwtUtil {
         try {
             byte[] keyBytes = Base64.getDecoder().decode(secret);
             Keys.hmacShaKeyFor(keyBytes);
+            int secretLength = keyBytes.length;
+            log.info("JWT configuration validated successfully. JWT_SECRET loaded with {} bytes", secretLength);
+            if (secretLength < 32) {
+                log.warn("JWT_SECRET is only {} bytes; minimum recommended is 32 bytes for HMAC-SHA256", secretLength);
+            }
         } catch (IllegalArgumentException ex) {
             throw new IllegalStateException("JWT_SECRET must be a valid base64-encoded secret with enough bytes for HMAC signing.", ex);
         }
@@ -51,13 +62,16 @@ public class JwtUtil {
                 .map(Role::getAuthority)
                 .collect(Collectors.toList());
 
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setSubject(email)
                 .claim("roles", authorities)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(getSigningKey())
                 .compact();
+        
+        log.debug("JWT token generated for email: {}, roles: {}, expiration: {} ms", email, authorities, accessExpiration);
+        return token;
     }
 
 
@@ -75,11 +89,30 @@ public class JwtUtil {
 
 
     public boolean validateToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims != null && claims.getExpiration().after(new Date())
+                    && claims.getSubject() != null;
+        } catch (JwtException ex) {
+            log.debug("Token validation failed: {}", getJwtExceptionType(ex), ex);
+            return false;
+        }
+    }
 
-        Claims claims = extractAllClaims(token);
-
-        return claims.getExpiration().after(new Date())
-                && claims.getSubject() != null;
+    private String getJwtExceptionType(Exception ex) {
+        if (ex instanceof SignatureException) {
+            return "SIGNATURE_EXCEPTION";
+        } else if (ex instanceof MalformedJwtException) {
+            return "MALFORMED_JWT_EXCEPTION";
+        } else if (ex instanceof ExpiredJwtException) {
+            return "EXPIRED_JWT_EXCEPTION";
+        } else if (ex instanceof UnsupportedJwtException) {
+            return "UNSUPPORTED_JWT_EXCEPTION";
+        } else if (ex instanceof IllegalArgumentException) {
+            return "ILLEGAL_ARGUMENT_EXCEPTION";
+        } else {
+            return "UNKNOWN_JWT_EXCEPTION (" + ex.getClass().getSimpleName() + ")";
+        }
     }
 
 
@@ -92,7 +125,20 @@ public class JwtUtil {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (ExpiredJwtException ex) {
+            log.debug("Token is expired: {}", ex.getMessage());
             return ex.getClaims();
+        } catch (SignatureException ex) {
+            log.warn("JWT signature validation failed (possible JWT_SECRET mismatch): {}", ex.getMessage());
+            throw ex;
+        } catch (MalformedJwtException ex) {
+            log.warn("Malformed JWT token: {}", ex.getMessage());
+            throw ex;
+        } catch (UnsupportedJwtException ex) {
+            log.warn("Unsupported JWT token: {}", ex.getMessage());
+            throw ex;
+        } catch (IllegalArgumentException ex) {
+            log.warn("JWT claims string is empty: {}", ex.getMessage());
+            throw ex;
         }
     }
 
